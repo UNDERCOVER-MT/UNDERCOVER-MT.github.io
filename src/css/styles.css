@@ -1,0 +1,59 @@
+#bodyWrapper {
+  max-width: 100vw;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+#bodyWrapper > nav {
+  flex: 0 0 56px;
+  overflow: hidden;
+}
+#mapWrapper {
+  flex: 1 0 auto;
+  overflow: hidden;
+}
+#map { height: calc(100vh - 56px); }
+
+.easy-button-button{
+  font-size: 20px;
+}
+
+.navbar-text{
+  font-weight: bold;
+  text-align:center;
+  vertical-align: middle;
+  font-size: 30px;
+  font-family:'FontAwesome';
+  } 
+  
+  /* body {
+    padding: 0;
+    margin: 0;
+}
+
+html, body, #map {
+    height: 93vh;
+    width: 100%;
+}
+
+nav {
+  height: 7vh;
+}
+
+.tooltip {
+	position: relative;
+	display: inline-block;
+	border-bottom: 1px dotted black;
+  }
+
+  .fa{
+    font-size: initial;
+  }
+
+ 
+
+  .navbar-brand{
+    padding-top: 0cm;
+    padding-bottom: 0cm;
+  } */
