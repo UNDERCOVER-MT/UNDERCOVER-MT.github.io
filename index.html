@@ -145,6 +145,12 @@
                     <!-- ECharts Chart -->
                     <div id="echarts-container" style="width: 100%; height: 400px; margin-bottom: 30px;"></div>
 
+
+                    <!-- Bar Chart: Number of Stations per Day -->
+                    <!-- <h5>Stations Deployed per Day</h5> -->
+                    <div id="stationBarChart" style="width: 60vh; height: 400px; margin-bottom: 30px;"></div>
+
+
                     <!-- Field Work Table -->
                     <h5>Update Log</h5>
                     <table class="table table-striped table-bordered">
@@ -254,6 +260,75 @@
                 }
             }
         });
+
+        // Bar Chart - Stations Per Day (example data)
+        const stationDates = [
+            '2025-05-01', '2025-05-01', '2025-05-02',
+            '2025-05-02', '2025-05-02', '2025-05-03',
+            '2025-05-03', '2025-05-03', '2025-05-03',
+            '2025-05-10', '2025-05-01', '2025-05-02',
+            '2025-05-05', '2025-05-02', '2025-05-10',
+            '2025-05-06', '2025-05-06', '2025-05-04'
+        ];
+
+        // Count frequency per date
+        const dateCount = {};
+        stationDates.forEach(date => {
+            dateCount[date] = (dateCount[date] || 0) + 1;
+        });
+        const dateLabels = Object.keys(dateCount).sort();
+        const dateValues = dateLabels.map(date => dateCount[date]);
+
+        const stationBarDom = document.getElementById('stationBarChart');
+        const stationBar = echarts.init(stationBarDom);
+        const barOption = {
+            title: {
+                text: 'Stations Logged per Day',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' }
+            },
+            grid: {
+                left: '10%',
+                right: '5%',
+                bottom: '15%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: dateLabels,
+                name: 'Date',
+                axisLabel: {
+                    rotate: 30, // Rotate labels if dates are long
+                    fontSize: 12
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Stations',
+                axisLabel: {
+                    fontSize: 12
+                }
+            },
+            series: [{
+                data: dateValues,
+                type: 'bar',
+                barWidth: '50%',
+                itemStyle: {
+                    color: '#5470C6'
+                },
+                label: {
+                    show: true,
+                    position: 'top',
+                    fontSize: 12
+                }
+            }]
+        };
+
+        stationBar.setOption(barOption);
+
     </script>
 
 
