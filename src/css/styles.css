@@ -13,21 +13,27 @@
   flex: 1 0 auto;
   overflow: hidden;
 }
-#map { height: calc(100vh - 56px); }
+#map {
+  height: calc(100vh - 56px);
+}
 
-.easy-button-button{
+.easy-button-button {
   font-size: 20px;
 }
 
-.navbar-text{
+.navbar-text {
   font-weight: bold;
-  text-align:center;
+  text-align: center;
   vertical-align: middle;
   font-size: 30px;
-  font-family:'FontAwesome';
-  } 
-  
-  /* body {
+  font-family: "FontAwesome";
+}
+/* 
+#dashboardPane {
+  background-color: "red";
+} */
+
+/* body {
     padding: 0;
     margin: 0;
 }
