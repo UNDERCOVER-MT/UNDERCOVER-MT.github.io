@@ -16,6 +16,7 @@ var map = L.map('map', {
         position: 'topleft',
     },
 });
+L.control.locate().addTo(map);
 
 map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet ' + L.version + '</a>');
 
@@ -81,7 +82,7 @@ map.on("bfl:layerloaded", function () { notification.success('Success', 'Data lo
 map.on("bfl:layerloaderror", function () { notification.alert('Error', 'Unable to load file'); })
 map.on("bfl:filenotsupported", function () { notification.alert('Error', 'File type not supported'); })
 map.on("bfl:layerisempty", function () { notification.warning('Error', 'No features in file'); })
-map.on("bfl:filesizelimit", function () { notification.alert('Error', 'Maximun file size allowed is 50 MB'); })
+map.on("bfl:filesizelimit", function () { notification.alert('Error', 'Maximun file size allowed is 60 MB'); })
 
 
 
