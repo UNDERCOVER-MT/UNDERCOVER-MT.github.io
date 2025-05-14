@@ -127,10 +127,7 @@ var mtLayerA = createMTLayer(mt_a, 'red', 'MT_A');
 var mtLayerB = createMTLayer(mt_b, 'blue', 'MT_B');
 var mtLayerC = createMTLayer(mt_c, 'green', 'MT_C');
 
-// Add them to map (optional by default)
-mtLayerA.addTo(map);
-mtLayerB.addTo(map);
-mtLayerC.addTo(map);
+
 // 🔐 Replace with your actual API key
 
 const apiKey = "11a96647-88c0-4011-841a-e09ff597d4f3";
@@ -231,7 +228,44 @@ const geologyLayer = L.geoJSON(geology, {
 })
 
 
+const faultLayer = L.geoJSON(fault, {
+    style: function () {
+        return {
+            color: 'black',
+            weight: 1.5,
+            opacity: 0.8
+        };
+    },
+    onEachFeature: function (feature, layer) {
+        const p = feature.properties;
+        let tableRows = "";
 
+        // Loop through all properties ending in "_"
+        for (const key in p) {
+            if (p.hasOwnProperty(key) && key.endsWith("_")) {
+                tableRows += `
+                    <tr>
+                        <th style="text-align:left; padding: 4px; background-color:#f8f8f8;">${key}</th>
+                        <td style="padding: 4px;">${p[key] !== -9999 && p[key] !== "" ? p[key] : "-"}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        const popupContent = `
+            <div style="font-family: sans-serif; font-size: 13px;">
+                <table style="width:100%; border-collapse: collapse; border: 1px solid #ccc;">
+                    ${tableRows}
+                </table>
+            </div>
+        `;
+        layer.bindPopup(popupContent);
+    }
+}).addTo(map);
+// Add them to map (optional by default)
+mtLayerA.addTo(map);
+mtLayerB.addTo(map);
+mtLayerC.addTo(map);
 var overlayMaps = {
     "MT A (Red)": mtLayerA,
     "MT B (Blue)": mtLayerB,
@@ -241,6 +275,7 @@ var overlayMaps = {
     "Major powerline": majorLayer,
     "Minor powerline": minorLayer,
     "Geology": geologyLayer,
+    "Faults": faultLayer
 };
 
 L.control.layers(null, overlayMaps, {
