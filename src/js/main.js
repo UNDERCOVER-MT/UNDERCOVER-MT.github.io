@@ -191,8 +191,12 @@ const colorList = [
 ];
 let colorIndex = 0;
 
+map.createPane('geologyPane');
+map.getPane('geologyPane').style.zIndex = 200;  // lower than default overlay zIndex
 // Step 2: Create the GeoJSON layer
 const geologyLayer = L.geoJSON(geology, {
+    pane: 'geologyPane',  // 🔽 use your custom pane
+
     style: function (feature) {
         const rock = feature.properties.ROCK_NAME || "Unknown";
         if (!colorMap[rock]) {
