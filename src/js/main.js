@@ -7,8 +7,9 @@ $(document).ready(function () {
 
 
 var map = L.map('map', {
-    zoom: 7,
-    center: L.latLng([65.6, 28.2]),
+    zoom: 8,
+    minZoom: 7,      // (optional) prevents zooming in beyond level 19
+    center: L.latLng([66, 28.2]),
     attributionControl: true,
     fullscreenControl: true,
     fullscreenControlOptions: {
@@ -98,47 +99,80 @@ for (var providerId in providers) {
 
 var ctrl = L.control.iconLayers(layers).addTo(map);
 
+function createMTLayer(data, color, layerName) {
+    return L.geoJson(data, {
+        pointToLayer: function (feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 6,
+                fillColor: color,
+                color: '#000',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+        },
+        onEachFeature: function (feature, layer) {
+            if (feature.properties && feature.properties.name) {
+                layer.bindPopup(`<b>Name:</b> ${feature.properties.name}`);
+            }
+        }
+    });
+}
 
-// var layer = L.dataClassification(HydroData, {
-//     style: {
-//         radius: 6, fillOpacity: 0.7,       // polygon fill opacity in polygon modes
-//     },
-//     mode: 'manual',
-//     classes: [23, 26, 34, 37, 41, 42, 44, 47, 52, 61],
-//     field: 'Temperature',
-//     pointMode: 'color',
-//     colorRamp: 'RdYlGn',
-//     legendTitle: 'Temperature °C',
-//     legendFooter: 'updated: April 2024',
-//     legendPosition: 'topright',
-//     reverseColorRamp: true,
-//     classRounding: 1,
-//     legendTemplate: {
-//         highest: '{low} - 87',
-//         middle: '{low} - {high}',
-//         lowest: '{low} - {high}',
-//         nodata: 'No data'
-//     },
-//     onEachFeature: (feature, layer) => {
-//         if (feature.properties) {
-//             const rows = Object.keys(feature.properties)
-//                 .map((key) => {
-//                     return `<span> <b>${key}</b> : ${feature.properties[key]} </span>`;
-//                 });
+// Example: these should be your actual GeoJSON data objects
+// var mt_a = {...}, mt_b = {...}, mt_c = {...};
 
-//             layer.bindPopup(
-//                 `
-//                           <div style="display:flex;flex-direction:column;gap:5px                      "> 
-//                               ${rows.join("")}
-//                           </div>
-//                         `,
-//                 {
-//                     minWidth: 200,
-//                     maxHeight: 520,
-//                 },
-//             );
-//         }
-//     },
+// Create individual layers
+var mtLayerA = createMTLayer(mt_a, 'red', 'MT_A');
+var mtLayerB = createMTLayer(mt_b, 'blue', 'MT_B');
+var mtLayerC = createMTLayer(mt_c, 'green', 'MT_C');
 
-// },).addTo(map);
+// Add them to map (optional by default)
+mtLayerA.addTo(map);
+mtLayerB.addTo(map);
+mtLayerC.addTo(map);
+// 🔐 Replace with your actual API key
 
+const apiKey = "11a96647-88c0-4011-841a-e09ff597d4f3";
+
+const kiinteistotunnuksetLayer = L.tileLayer(
+    `https://avoin-karttakuva.maanmittauslaitos.fi/avoin/wmts/1.0.0/kiinteistotunnukset/default/WGS84_Pseudo-Mercator/{z}/{y}/{x}.png?api-key=${apiKey}`,
+    {
+        tileSize: 256,
+        minZoom: 12,
+        // maxZoom: 18,
+        attribution: '&copy; <a href="https://www.maanmittauslaitos.fi">Maanmittauslaitos</a>',
+        opacity: 0.7
+    }
+);
+
+const kiinteistojaotusLayer = L.tileLayer(
+    `https://avoin-karttakuva.maanmittauslaitos.fi/avoin/wmts/1.0.0/kiinteistojaotus/default/WGS84_Pseudo-Mercator/{z}/{y}/{x}.png?api-key=${apiKey}`,
+    {
+        tileSize: 256,
+        minZoom: 12,
+        // maxZoom: 18,
+        attribution: '&copy; <a href="https://www.maanmittauslaitos.fi">Maanmittauslaitos</a>',
+        opacity: 0.7
+    }
+);
+
+
+// Add to map (hide at start)
+// kiinteistojaotusLayer.addTo(map);
+// kiinteistotunnuksetLayer.addTo(map);
+
+
+
+var overlayMaps = {
+    "MT A (Red)": mtLayerA,
+    "MT B (Blue)": mtLayerB,
+    "MT C (Green)": mtLayerC,
+    "Cadastre boundary": kiinteistojaotusLayer,
+    "Cadastre codes": kiinteistotunnuksetLayer,
+};
+
+L.control.layers(null, overlayMaps, {
+    collapsed: false, // Set to true if you want it collapsible
+    position: 'topright'
+}).addTo(map);
