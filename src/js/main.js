@@ -162,6 +162,74 @@ const kiinteistojaotusLayer = L.tileLayer(
 // kiinteistojaotusLayer.addTo(map);
 // kiinteistotunnuksetLayer.addTo(map);
 
+const majorLayer = L.geoJSON(major_powerline, {
+    style: {
+        color: 'red',
+        weight: 3
+    },
+    onEachFeature: function (feature, layer) {
+        layer.bindPopup(`Name: ${feature.properties.name}<br>Voltage: ${feature.properties.voltage} V`);
+    }
+})
+
+const minorLayer = L.geoJSON(minor_powerline, {
+    style: {
+        color: 'blue',
+        weight: 2,
+        // dashArray: '5, 5'
+    },
+    onEachFeature: function (feature, layer) {
+        layer.bindPopup(`Name: ${feature.properties.name}<br>Voltage: ${feature.properties.voltage} V`);
+    }
+})
+
+
+// Assuming your data is in a variable named `geology`
+// Step 1: Create a color palette based on unique rock names
+const colorMap = {};
+const colorList = [
+    '#bcf60c', '#e6beff', '#ffe119', '#4363d8', '#f58231',
+    '#911eb4', '#46f0f0', '#f032e6', '#e6194b', '#fabebe',
+    '#008080', '#3cb44b', '#9a6324', '#fffac8', '#800000'
+];
+let colorIndex = 0;
+
+// Step 2: Create the GeoJSON layer
+const geologyLayer = L.geoJSON(geology, {
+    style: function (feature) {
+        const rock = feature.properties.ROCK_NAME || "Unknown";
+        if (!colorMap[rock]) {
+            colorMap[rock] = colorList[colorIndex % colorList.length];
+            colorIndex++;
+        }
+        return {
+            color: colorMap[rock],
+            weight: 1,
+            fillOpacity: 0.5
+        };
+    },
+    onEachFeature: function (feature, layer) {
+        const p = feature.properties;
+        const popupContent = `
+        <table style="width:100%; font-size: 13px;">
+            <tr><th>OBJECTID</th><td>${p.OBJECTID || "-"}</td></tr>
+            <tr><th>Eon</th><td>${p.EON_ || "-"}</td></tr>
+            <tr><th>Era</th><td>${p.ERA_ || "-"}</td></tr>
+            <tr><th>Chronostrat. Unit</th><td>${p.CHRONOSTRATICRAPHIC_UNIT_ || "-"}</td></tr>
+            <tr><th>Epoch</th><td>${p.EPOCH_ || "-"}</td></tr>
+            <tr><th>Group</th><td>${p.GROUP__ || "-"}</td></tr>
+            <tr><th>Formation</th><td>${p.FORMATION_ || "-"}</td></tr>
+            <tr><th>Member</th><td>${p.MEMBER_ || "-"}</td></tr>
+            <tr><th>Original Name</th><td>${p.ORIGINAL_NAME || "-"}</td></tr>
+            <tr><th>Rock Class</th><td>${p.ROCK_CLASS_ || "-"}</td></tr>
+            <tr><th>Rock Name</th><td>${p.ROCK_NAME_ || "-"}</td></tr>
+        </table>
+    `;
+        layer.bindPopup(popupContent);
+    }
+
+})
+
 
 
 var overlayMaps = {
@@ -170,6 +238,9 @@ var overlayMaps = {
     "MT C (Green)": mtLayerC,
     "Cadastre boundary": kiinteistojaotusLayer,
     "Cadastre codes": kiinteistotunnuksetLayer,
+    "Major powerline": majorLayer,
+    "Minor powerline": minorLayer,
+    "Geology": geologyLayer,
 };
 
 L.control.layers(null, overlayMaps, {
