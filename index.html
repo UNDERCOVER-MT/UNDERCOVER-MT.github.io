@@ -170,33 +170,93 @@
                     <!-- <h5>Stations Deployed per Day</h5> -->
                     <div id="stationBarChart" style="width: 60vh; height: 400px; margin-bottom: 30px;"></div>
 
-
-                    <!-- Field Work Table -->
                     <h5>Update Log</h5>
-                    <table class="table table-striped table-bordered">
+                    <table class="table table-striped table-bordered align-middle">
                         <thead class="table-light">
                             <tr>
+                                <th>Site</th>
                                 <th>Date</th>
-                                <th>Location</th>
-                                <th>Status</th>
-                                <th>Comments</th>
+                                <th>Comment</th>
+                                <th>Team</th>
                             </tr>
                         </thead>
                         <tbody>
+                            <!-- Blue row: uc058b -->
                             <tr>
-                                <td>2025-05-10</td>
-                                <td>Site A</td>
-                                <td>Completed</td>
-                                <td>MT deployed successfully</td>
+                                <td>uc058b</td>
+                                <td>
+                                    <script>document.write(new Date().toISOString().split('T')[0])</script>
+                                </td>
+                                <td></td>
+                                <td>
+                                    <img src="https://randomuser.me/api/portraits/lego/4.jpg"
+                                        class="rounded-circle me-1" height="40" alt="tech1">
+                                    <img src="https://randomuser.me/api/portraits/lego/2.jpg" class="rounded-circle"
+                                        height="40" alt="tech2">
+                                </td>
                             </tr>
+                            <!-- Blue row: uc067b -->
                             <tr>
-                                <td>2025-05-12</td>
-                                <td>Site B</td>
-                                <td>In Progress</td>
-                                <td>Awaiting calibration</td>
+                                <td>uc066b</td>
+                                <td>
+                                    <script>document.write(new Date().toISOString().split('T')[0])</script>
+                                </td>
+                                <td> </td>
+                                <td>
+                                    <img src="https://randomuser.me/api/portraits/lego/4.jpg"
+                                        class="rounded-circle me-1" height="40" alt="tech1">
+                                    <img src="https://randomuser.me/api/portraits/lego/2.jpg" class="rounded-circle"
+                                        height="40" alt="tech2">
+                                </td>
+                            </tr>
+
+                            <!-- Blue row: uc067b -->
+                            <tr>
+                                <td>uc067b</td>
+                                <td>
+                                    <script>document.write(new Date().toISOString().split('T')[0])</script>
+                                </td>
+                                <td>drive around trailer in road on south side</td>
+                                <td>
+                                    <img src="https://randomuser.me/api/portraits/lego/4.jpg"
+                                        class="rounded-circle me-1" height="40" alt="tech1">
+                                    <img src="https://randomuser.me/api/portraits/lego/2.jpg" class="rounded-circle"
+                                        height="40" alt="tech2">
+                                </td>
+                            </tr>
+
+                            <!-- Gray row: uc084b -->
+                            <tr>
+                                <td>uc084b</td>
+                                <td>
+                                    <script>document.write(new Date().toISOString().split('T')[0])</script>
+                                </td>
+                                <td>High contact resistances</td>
+                                <td>
+                                    <img src="https://randomuser.me/api/portraits/lego/1.jpg"
+                                        class="rounded-circle me-1" height="40" alt="tech1">
+                                    <img src="https://randomuser.me/api/portraits/lego/3.jpg" class="rounded-circle"
+                                        height="40" alt="tech2">
+                                </td>
+                            </tr>
+
+                            <!-- Gray row: uc095c -->
+                            <tr>
+                                <td>uc096c</td>
+                                <td>
+                                    <script>document.write(new Date().toISOString().split('T')[0])</script>
+                                </td>
+                                <td>CAREFUL! By is reversed!</td>
+                                <td>
+                                    <img src="https://randomuser.me/api/portraits/lego/1.jpg"
+                                        class="rounded-circle me-1" height="40" alt="tech1">
+                                    <img src="https://randomuser.me/api/portraits/lego/3.jpg" class="rounded-circle"
+                                        height="40" alt="tech2">
+                                </td>
                             </tr>
                         </tbody>
                     </table>
+
 
                     <!-- Map Thumbnails -->
                     <h5>Site Snapshots</h5>
@@ -236,7 +296,7 @@
                 const chartDom = document.getElementById('echarts-container');
                 if (chartDom) {
                     const myChart = echarts.init(chartDom);
-                    const completed = 87;  // Change as needed
+                    const completed = 5;  // Change as needed
                     const total = 230;
                     const remaining = total - completed;
 
@@ -283,14 +343,10 @@
 
         // Bar Chart - Stations Per Day (example data)
         const stationDates = [
-            '2025-05-01', '2025-05-01', '2025-05-02',
-            '2025-05-02', '2025-05-02', '2025-05-03',
-            '2025-05-03', '2025-05-03', '2025-05-03',
-            '2025-05-10', '2025-05-01', '2025-05-02',
-            '2025-05-05', '2025-05-02', '2025-05-10',
-            '2025-05-06', '2025-05-06', '2025-05-04'
-        ];
+            '2025-05-20', '2025-05-20', '2025-05-20',
+            '2025-05-20', '2025-05-20',
 
+        ];
         // Count frequency per date
         const dateCount = {};
         stationDates.forEach(date => {

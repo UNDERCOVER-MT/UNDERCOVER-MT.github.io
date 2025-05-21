@@ -97,3 +97,6 @@ body,
 .modal-content {
   font-size: 14px;
 }
+.table td img {
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.15);
+}
