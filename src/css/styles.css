@@ -80,6 +80,23 @@ body,
   font-size: 26px;
   font-family: "Arial", sans-serif;
 }
+.navbar {
+  min-height: 48px;
+}
+#map {
+  height: calc(100vh - 48px); /* match navbar height */
+}
+
+.navbar-brand img {
+  height: 36px;
+  margin-right: 8px;
+}
+
+.navbar-text {
+  font-size: 18px;
+  line-height: 1;
+  vertical-align: middle;
+}
 
 .navbar-brand img {
   height: 40px;

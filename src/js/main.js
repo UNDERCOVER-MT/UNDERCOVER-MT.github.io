@@ -383,6 +383,7 @@ var baseLayers = []; // (optional)
 var groupedOverlays = [
     {
         group: "Magnetotelluric",
+        collapsed: true,
         layers: [
             { name: "MT A (Red)", layer: mtLayerA },
             { name: "MT B (Blue)", layer: mtLayerB },
@@ -391,6 +392,7 @@ var groupedOverlays = [
     },
     {
         group: "Cadastre",
+        collapsed: true,
         layers: [
             { name: "Cadastre boundary", layer: kiinteistojaotusLayer },
             { name: "Cadastre codes", layer: kiinteistotunnuksetLayer }
