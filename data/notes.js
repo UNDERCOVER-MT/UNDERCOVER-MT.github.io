@@ -28,5 +28,6 @@ var stationNotes = {
     "203": "May be gated depending on direction of approach. Open atleast from north?",
     "206": "Gated, c alternative withouth gate",
     "220": "Gated",
-    "221": "Gated, maybe western access is without gate"
+    "221": "Gated, maybe western access is without gate",
+    "177": "Move, need to move min 250m backwards along road"
 }
