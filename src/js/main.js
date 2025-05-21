@@ -398,6 +398,8 @@ var groupedOverlays = [
     },
     {
         group: "Infrastructure",
+        collapsed: true,
+
         layers: [
             { name: "Major powerline", layer: majorLayer },
             { name: "Minor powerline", layer: minorLayer }
@@ -405,6 +407,7 @@ var groupedOverlays = [
     },
     {
         group: "Geology",
+        collapsed: true,
         layers: [
             { name: "Geology", layer: geologyLayer },
             { name: "Faults", layer: faultLayer }
