@@ -1,8 +1,8 @@
 $(document).ready(function () {
-    $('#myModal').modal('show')
-    $('#mailbutton').click(function (event) {
-        window.location = "mailto:h.marzouk@uni-muenster.de";
-    });
+    // $('#myModal').modal('show')
+    // $('#mailbutton').click(function (event) {
+    //     window.location = "mailto:h.marzouk@uni-muenster.de";
+    // });
 });
 
 
@@ -85,6 +85,7 @@ map.on("bfl:layerisempty", function () { notification.warning('Error', 'No featu
 map.on("bfl:filesizelimit", function () { notification.alert('Error', 'Maximun file size allowed is 60 MB'); })
 
 
+var routingControl = null;
 
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -97,9 +98,56 @@ for (var providerId in providers) {
     layers.push(providers[providerId]);
 }
 
+//  Add navigation
+map.on('popupopen', function (e) {
+    const link = e.popup._contentNode.querySelector('.navigate-link');
+    if (link) {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+
+            const lat = parseFloat(this.dataset.lat);
+            const lng = parseFloat(this.dataset.lng);
+            const destination = L.latLng(lat, lng);
+
+            if (routingControl !== null) {
+                map.removeControl(routingControl);
+            }
+
+            navigator.geolocation.getCurrentPosition(function (pos) {
+                const userLatLng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        userLatLng,
+                        destination
+                    ],
+                    routeWhileDragging: false,
+                    show: false,
+                    addWaypoints: false,
+                    lineOptions: {
+                        styles: [
+                            {
+                                color: '#0077ff',      // route color
+                                weight: 4,             // line thickness
+                                opacity: 0.8,
+                                dashArray: '8, 8'      // ✅ dashed line: 8px dash, 8px gap
+                            }
+                        ]
+                    },
+                    createMarker: () => null  // optional: no default markers
+                }).addTo(map);
+
+            }, function (err) {
+                alert("Geolocation failed: " + err.message);
+            });
+        });
+    }
+});
+
 
 var ctrl = L.control.iconLayers(layers).addTo(map);
 
+let mtCTooltips = []; // Store tooltips for zoom toggle
 function createMTLayer(data, color, layerName) {
     return L.geoJson(data, {
         pointToLayer: function (feature, latlng) {
@@ -113,12 +161,73 @@ function createMTLayer(data, color, layerName) {
             });
         },
         onEachFeature: function (feature, layer) {
-            if (feature.properties && feature.properties.name) {
-                layer.bindPopup(`<b>Name:</b> ${feature.properties.name}`);
+            let popupContent = "";
+            const name = feature.properties.name || "";
+
+            // ✅ Match note from stationNotes by checking if any key is in name
+            let matchedNote = null;
+            // console.log("Feature name:", feature.properties.name);
+            // console.log("Station notes keys:", Object.keys(stationNotes));
+            for (const code in stationNotes) {
+                // console.log(stationNotes)
+                if (name.includes(code)) {
+                    matchedNote = stationNotes[code];
+                    break;
+                }
+            }
+
+            // Build popup
+            if (name) {
+                popupContent += `<b>Name:</b> ${name}<br>`;
+            }
+            if (matchedNote) {
+
+                popupContent += `<b>Note:</b> ${matchedNote}<br>`;
+            }
+            popupContent += `<hr style="margin: 4px 0; border-top: 3px solid #aaa;">`;  // clean divider
+            popupContent += `<a href="#" class="navigate-link" data-lat="${layer.getLatLng().lat}" data-lng="${layer.getLatLng().lng}">📍 Navigate here</a>`;
+
+            layer.bindPopup(popupContent);
+
+            // ✅ Add label only to MT_C
+            if (layerName === 'MT_C' && name) {
+                const tooltip = L.tooltip({
+                    permanent: true,
+                    direction: 'top',
+                    className: 'mt-label'
+                })
+                    .setContent(name)
+                    .setLatLng(layer.getLatLng())
+                    .addTo(map);
+
+                mtCTooltips.push(tooltip);
             }
         }
     });
 }
+
+//    // 🟩 Add permanent labels only for MT_C
+//         if (layerName === 'MT_C' && feature.properties.name) {
+//             layer.bindTooltip(feature.properties.name, {
+//                 permanent: true,
+//                 direction: 'top',
+//                 className: 'mt-label'
+//             });
+//         }
+//     }
+L.easyButton({
+    states: [{
+        stateName: 'clearRoute',
+        icon: 'fa-times-circle', // Font Awesome icon
+        title: 'Clear Route',
+        onClick: function (btn, map) {
+            if (routingControl !== null) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+        }
+    }]
+}).addTo(map);
 
 // Example: these should be your actual GeoJSON data objects
 // var mt_a = {...}, mt_b = {...}, mt_c = {...};
@@ -266,24 +375,66 @@ const faultLayer = L.geoJSON(fault, {
         `;
         layer.bindPopup(popupContent);
     }
-}).addTo(map);
+})
+
+
+var baseLayers = []; // (optional)
+
+var groupedOverlays = [
+    {
+        group: "Magnetotelluric",
+        layers: [
+            { name: "MT A (Red)", layer: mtLayerA },
+            { name: "MT B (Blue)", layer: mtLayerB },
+            { name: "MT C (Green)", layer: mtLayerC }
+        ]
+    },
+    {
+        group: "Cadastre",
+        layers: [
+            { name: "Cadastre boundary", layer: kiinteistojaotusLayer },
+            { name: "Cadastre codes", layer: kiinteistotunnuksetLayer }
+        ]
+    },
+    {
+        group: "Infrastructure",
+        layers: [
+            { name: "Major powerline", layer: majorLayer },
+            { name: "Minor powerline", layer: minorLayer }
+        ]
+    },
+    {
+        group: "Geology",
+        layers: [
+            { name: "Geology", layer: geologyLayer },
+            { name: "Faults", layer: faultLayer }
+        ]
+    }
+];
+
 // Add them to map (optional by default)
 mtLayerA.addTo(map);
 mtLayerB.addTo(map);
 mtLayerC.addTo(map);
-var overlayMaps = {
-    "MT A (Red)": mtLayerA,
-    "MT B (Blue)": mtLayerB,
-    "MT C (Green)": mtLayerC,
-    "Cadastre boundary": kiinteistojaotusLayer,
-    "Cadastre codes": kiinteistotunnuksetLayer,
-    "Major powerline": majorLayer,
-    "Minor powerline": minorLayer,
-    "Geology": geologyLayer,
-    "Faults": faultLayer
-};
 
-L.control.layers(null, overlayMaps, {
-    collapsed: false, // Set to true if you want it collapsible
+// var overlayMaps = {
+//     "MT A (Red)": mtLayerA,
+//     "MT B (Blue)": mtLayerB,
+//     "MT C (Green)": mtLayerC,
+//     "Cadastre boundary": kiinteistojaotusLayer,
+//     "Cadastre codes": kiinteistotunnuksetLayer,
+//     "Major powerline": majorLayer,
+//     "Minor powerline": minorLayer,
+//     "Geology": geologyLayer,
+//     "Faults": faultLayer
+// };
+
+// L.control.layers(null, overlayMaps, {
+//     collapsed: false, // Set to true if you want it collapsible
+//     position: 'topright'
+// }).addTo(map);
+L.control.panelLayers(baseLayers, groupedOverlays, {
+    compact: true, // true = collapsed groups by default
+    collapsibleGroups: true,
     position: 'topright'
 }).addTo(map);

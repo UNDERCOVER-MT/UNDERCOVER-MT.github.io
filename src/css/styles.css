@@ -28,6 +28,16 @@
   font-size: 30px;
   font-family: "FontAwesome";
 }
+
+.mt-label {
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.5); /* white with 50% opacity */
+
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
 /* 
 #dashboardPane {
   background-color: "red";
