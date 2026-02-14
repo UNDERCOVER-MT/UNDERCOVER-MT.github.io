@@ -117,3 +117,58 @@ body,
 .table td img {
   box-shadow: 0 0 3px rgba(0, 0, 0, 0.15);
 }
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.dot-batCircle {
+  background: #4daf4a;
+}
+.dot-2024 {
+  background: #377eb8;
+}
+
+.dot-planned-2026 {
+  background: #ff7f00;
+}
+
+.legend-rect {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.rect-afmag {
+  background: #9b59b6;
+}
+
+.rect-sAEM {
+  background: #000;
+}
+
+.seismic-triangle {
+  width: 0;
+  height: 0;
+}
+
+.legend-tri {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 6px;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+}
+
+.tri-seis {
+  border-top: 12px solid #222;
+}

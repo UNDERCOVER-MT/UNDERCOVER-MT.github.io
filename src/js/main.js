@@ -148,63 +148,6 @@ map.on('popupopen', function (e) {
 var ctrl = L.control.iconLayers(layers).addTo(map);
 
 let mtCTooltips = []; // Store tooltips for zoom toggle
-function createMTLayer(data, color, layerName) {
-    return L.geoJson(data, {
-        pointToLayer: function (feature, latlng) {
-            return L.circleMarker(latlng, {
-                radius: 6,
-                fillColor: color,
-                color: '#000',
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.8
-            });
-        },
-        onEachFeature: function (feature, layer) {
-            let popupContent = "";
-            const name = feature.properties.name || "";
-
-            // ✅ Match note from stationNotes by checking if any key is in name
-            let matchedNote = null;
-            // console.log("Feature name:", feature.properties.name);
-            // console.log("Station notes keys:", Object.keys(stationNotes));
-            for (const code in stationNotes) {
-                // console.log(stationNotes)
-                if (name.includes(code)) {
-                    matchedNote = stationNotes[code];
-                    break;
-                }
-            }
-
-            // Build popup
-            if (name) {
-                popupContent += `<b>Name:</b> ${name}<br>`;
-            }
-            if (matchedNote) {
-
-                popupContent += `<b>Note:</b> ${matchedNote}<br>`;
-            }
-            popupContent += `<hr style="margin: 4px 0; border-top: 3px solid #aaa;">`;  // clean divider
-            popupContent += `<a href="#" class="navigate-link" data-lat="${layer.getLatLng().lat}" data-lng="${layer.getLatLng().lng}">📍 Navigate here</a>`;
-
-            layer.bindPopup(popupContent);
-
-            // ✅ Add label only to MT_C
-            if (layerName === 'MT_C' && name) {
-                const tooltip = L.tooltip({
-                    permanent: true,
-                    direction: 'top',
-                    className: 'mt-label'
-                })
-                    .setContent(name)
-                    .setLatLng(layer.getLatLng())
-                    .addTo(map);
-
-                mtCTooltips.push(tooltip);
-            }
-        }
-    });
-}
 
 //    // 🟩 Add permanent labels only for MT_C
 //         if (layerName === 'MT_C' && feature.properties.name) {
@@ -227,19 +170,11 @@ L.easyButton({
             }
         }
     }]
-}).addTo(map);
+}).addTo(map)
+    ;
+//  finished laodind controls
 
-// Example: these should be your actual GeoJSON data objects
-// var mt_a = {...}, mt_b = {...}, mt_c = {...};
-
-// Create individual layers
-var mtLayerA = createMTLayer(mt_a, 'red', 'MT_A');
-var mtLayerB = createMTLayer(mt_b, 'blue', 'MT_B');
-var mtLayerC = createMTLayer(mt_c, 'green', 'MT_C');
-
-
-// 🔐 Replace with your actual API key
-
+// Here start loading metadata
 const apiKey = "11a96647-88c0-4011-841a-e09ff597d4f3";
 
 const kiinteistotunnuksetLayer = L.tileLayer(
@@ -264,10 +199,6 @@ const kiinteistojaotusLayer = L.tileLayer(
     }
 );
 
-
-// Add to map (hide at start)
-// kiinteistojaotusLayer.addTo(map);
-// kiinteistotunnuksetLayer.addTo(map);
 
 const majorLayer = L.geoJSON(major_powerline, {
     style: {
@@ -378,16 +309,106 @@ const faultLayer = L.geoJSON(fault, {
 })
 
 
+
+
+
+// Load MT and seam data
+var mtLayer_BatCircle = createMTLayer(mt_BatCircle, '#4daf4a', 'MT_BatCircle');
+var mtLayer_2024 = createMTLayer(mt_2024, '#377eb8', 'MT_2024');
+var mtLayer_2026 = createMTLayer(mt_planned_2026, '#ff7f00', 'MT_2026');
+
+
+const afmagLayer = L.geoJSON(AFMAG_area, {
+    style: {
+        color: '#9b59b6',
+        weight: 3,
+        fillopacity: 0.0,
+    },
+    onEachFeature: function (feature, layer) {
+        layer.bindPopup(`<b>Name:</b> ${feature.properties.name}<br>`);
+    }
+})
+
+const sAEMLayer = L.geoJSON(sAEM_patches, {
+    style: {
+        color: 'black',
+        weight: 1,
+        opacity: 0.9,
+        fillopacity: 0.1,
+
+    },
+    onEachFeature: function (feature, layer) {
+        layer.bindPopup(`<b>Name:</b> ${feature.properties.name}<br>`);
+    }
+})
+
+// Load seismice data
+var seismicUCLayer = createSeismicLayer(seismic_UC, {
+    color: '#222',
+    size: 8
+});
+
+var seismicBbLayer = createSeismicLayer(seismic_BroadBand, {
+    color: '#222',
+    size: 14
+});
+
+
 var baseLayers = []; // (optional)
 
 var groupedOverlays = [
     {
         group: "Magnetotelluric",
+        collapsed: false,
+        layers: [
+            {
+                name: "<span class='legend-dot dot-batCircle'></span> BatCircle", layer: mtLayer_BatCircle,
+                active: true,
+            },
+            {
+                name: "<span class='legend-dot dot-2024'></span> 2025", layer: mtLayer_2024,
+                active: true,
+            },
+            {
+                name: "<span class='legend-dot dot-planned-2026'></span> planend 2026", layer: mtLayer_2026,
+                active: true,
+            },
+
+            // { name: "MT B (Blue)", layer: mtLayerB },
+            // { name: "MT C (Green)", layer: mtLayerC }
+        ]
+    },
+    {
+        group: "Airborne EM",
         collapsed: true,
         layers: [
-            { name: "MT A (Red)", layer: mtLayerA },
-            { name: "MT B (Blue)", layer: mtLayerB },
-            { name: "MT C (Green)", layer: mtLayerC }
+            {
+                name: "<span class='legend-rect rect-afmag'></span> AFMAG",
+                layer: afmagLayer,
+                active: true,
+            },
+            {
+                name: "<span class='legend-rect rect-sAEM'></span> sAEM",
+                layer: sAEMLayer,
+                active: true,
+            },
+
+            // { name: "MT B (Blue)", layer: mtLayerB },
+            // { name: "MT C (Green)", layer: mtLayerC }
+        ]
+    },
+    {
+        group: "Seismic",
+        collapsed: true,
+        layers: [
+            {
+                name: "<span class='legend-tri tri-seis'></span> UC", layer: seismicUCLayer,
+                active: false,
+            },
+            {
+                name: "<span class='legend-tri tri-seis'></span> Broadband", layer: seismicBbLayer,
+                active: false,
+            },
         ]
     },
     {
@@ -417,29 +438,117 @@ var groupedOverlays = [
     }
 ];
 
-// Add them to map (optional by default)
-mtLayerA.addTo(map);
-mtLayerB.addTo(map);
-mtLayerC.addTo(map);
-
-// var overlayMaps = {
-//     "MT A (Red)": mtLayerA,
-//     "MT B (Blue)": mtLayerB,
-//     "MT C (Green)": mtLayerC,
-//     "Cadastre boundary": kiinteistojaotusLayer,
-//     "Cadastre codes": kiinteistotunnuksetLayer,
-//     "Major powerline": majorLayer,
-//     "Minor powerline": minorLayer,
-//     "Geology": geologyLayer,
-//     "Faults": faultLayer
-// };
-
-// L.control.layers(null, overlayMaps, {
-//     collapsed: false, // Set to true if you want it collapsible
-//     position: 'topright'
-// }).addTo(map);
 L.control.panelLayers(baseLayers, groupedOverlays, {
     compact: true, // true = collapsed groups by default
     collapsibleGroups: true,
+    selectorGroup: true,
     position: 'topright'
 }).addTo(map);
+
+
+// Functions section 
+function createMTLayer(data, color, layerName) {
+    return L.geoJson(data, {
+        pointToLayer: function (feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 4,
+                fillColor: color,
+                color: '#000',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+        },
+        onEachFeature: function (feature, layer) {
+            let popupContent = "";
+            const name = feature.properties.name || "";
+
+            // ✅ Match note from stationNotes by checking if any key is in name
+            let matchedNote = null;
+            // console.log("Feature name:", feature.properties.name);
+            // console.log("Station notes keys:", Object.keys(stationNotes));
+            for (const code in stationNotes) {
+                // console.log(stationNotes)
+                if (name.includes(code)) {
+                    matchedNote = stationNotes[code];
+                    break;
+                }
+            }
+
+            // Build popup
+            if (name) {
+                popupContent += `<b>Name:</b> ${name}<br>`;
+            }
+            if (matchedNote) {
+
+                popupContent += `<b>Note:</b> ${matchedNote}<br>`;
+            }
+            popupContent += `<hr style="margin: 4px 0; border-top: 3px solid #aaa;">`;  // clean divider
+            popupContent += `<a href="#" class="navigate-link" data-lat="${layer.getLatLng().lat}" data-lng="${layer.getLatLng().lng}">📍 Navigate here</a>`;
+
+            layer.bindPopup(popupContent);
+
+            // ✅ Add label only to MT_C
+            // if (layerName === 'MT_C' && name) {
+            //     const tooltip = L.tooltip({
+            //         permanent: true,
+            //         direction: 'top',
+            //         className: 'mt-label'
+            //     })
+            //         .setContent(name)
+            //         .setLatLng(layer.getLatLng())
+            //         .addTo(map);
+
+            //     mtCTooltips.push(tooltip);
+            // }
+        }
+    });
+}
+
+function createSeismicLayer(data, options = {}) {
+
+    const {
+        color = '#000',
+        size = 12
+    } = options;
+
+    return L.geoJson(data, {
+
+        pointToLayer: function (feature, latlng) {
+
+            // Allow feature-based size override
+            const featureSize = feature.properties.size || size;
+
+            return L.marker(latlng, {
+                icon: L.divIcon({
+                    className: '',
+                    html: `
+                        <div class="seismic-triangle"
+                             style="
+                                border-left:${featureSize / 2}px solid transparent;
+                                border-right:${featureSize / 2}px solid transparent;
+                                border-top:${featureSize}px solid ${color};
+                             ">
+                        </div>
+                    `,
+                    iconSize: [featureSize, featureSize]
+                })
+            });
+        },
+
+        onEachFeature: function (feature, layer) {
+
+            let popupContent = "";
+
+            if (feature.properties.name) {
+                popupContent += `<b>Seismic Station:</b> ${feature.properties.name}<br>`;
+            }
+
+            if (feature.properties.magnitude) {
+                popupContent += `<b>Magnitude:</b> ${feature.properties.magnitude}<br>`;
+            }
+
+            layer.bindPopup(popupContent);
+        }
+    });
+}
