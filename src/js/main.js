@@ -315,14 +315,13 @@ const faultLayer = L.geoJSON(fault, {
 // Load MT and seam data
 var mtLayer_BatCircle = createMTLayer(mt_BatCircle, '#4daf4a', 'MT_BatCircle');
 var mtLayer_2024 = createMTLayer(mt_2024, '#377eb8', 'MT_2024');
-var mtLayer_2026 = createMTLayer(mt_planned_2026, '#ff7f00', 'MT_2026');
+var mtLayer_2026 = createMTLayer(mt_planned_2026, '#CD1C18', 'MT_2026');
 
 
 const afmagLayer = L.geoJSON(AFMAG_area, {
     style: {
         color: '#9b59b6',
         weight: 3,
-        fillopacity: 0.0,
     },
     onEachFeature: function (feature, layer) {
         layer.bindPopup(`<b>Name:</b> ${feature.properties.name}<br>`);
@@ -439,8 +438,8 @@ var groupedOverlays = [
 ];
 
 L.control.panelLayers(baseLayers, groupedOverlays, {
-    compact: true, // true = collapsed groups by default
-    collapsibleGroups: true,
+    // compact: true, // true = collapsed groups by default
+    // collapsibleGroups: true,
     selectorGroup: true,
     position: 'topright'
 }).addTo(map);
@@ -456,7 +455,7 @@ function createMTLayer(data, color, layerName) {
                 color: '#000',
                 weight: 1,
                 opacity: 1,
-                fillOpacity: 0.8
+                fillOpacity: 0.9
             });
         },
         onEachFeature: function (feature, layer) {
