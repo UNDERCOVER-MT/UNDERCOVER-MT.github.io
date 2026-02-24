@@ -7,9 +7,19 @@ from trame.widgets import vtk, vuetify, trame
 
 from vtkmodules.vtkCommonDataModel import vtkDataObject, vtkPlane
 from vtkmodules.vtkFiltersCore import vtkContourFilter, vtkCutter
-from vtkmodules.vtkRenderingAnnotation import vtkCubeAxesActor, vtkAxesActor, vtkScalarBarActor
-from vtkmodules.vtkRenderingCore import vtkActor, vtkDataSetMapper, vtkRenderer, vtkRenderWindow, vtkRenderWindowInteractor
-from vtkmodules.vtkIOLegacy import vtkRectilinearGridReader,vtkUnstructuredGridReader
+from vtkmodules.vtkRenderingAnnotation import (
+    vtkCubeAxesActor,
+    vtkAxesActor,
+    vtkScalarBarActor,
+)
+from vtkmodules.vtkRenderingCore import (
+    vtkActor,
+    vtkDataSetMapper,
+    vtkRenderer,
+    vtkRenderWindow,
+    vtkRenderWindowInteractor,
+)
+from vtkmodules.vtkIOLegacy import vtkRectilinearGridReader, vtkUnstructuredGridReader
 
 # Required for interactor initialization
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
@@ -72,6 +82,14 @@ data = reader.GetOutput()
 bounds = data.GetBounds()  # (xmin, xmax, ymin, ymax, zmin, zmax)
 xmin, xmax, ymin, ymax, zmin, zmax = bounds
 
+cx = 0.5 * (xmin + xmax)
+cy = 0.5 * (ymin + ymax)
+cz = 0.5 * (zmin + zmax)
+
+dx = xmax - xmin
+dy = ymax - ymin
+dz = zmax - zmin
+R = max(dx, dy, dz)  # model size scale
 # -----------------------------------------------------------------------------
 # Extract Array/Field information
 # -----------------------------------------------------------------------------
@@ -97,7 +115,14 @@ for field_arrays, association in fields:
 
 if not dataset_arrays:
     # If the dataset has no arrays, create a dummy entry so UI won't crash.
-    dataset_arrays = [{"text": "(none)", "value": 0, "range": [0.0, 1.0], "type": vtkDataObject.FIELD_ASSOCIATION_CELLS}]
+    dataset_arrays = [
+        {
+            "text": "(none)",
+            "value": 0,
+            "range": [0.0, 1.0],
+            "type": vtkDataObject.FIELD_ASSOCIATION_CELLS,
+        }
+    ]
 
 default_array = dataset_arrays[0]
 default_min, default_max = default_array.get("range")
@@ -131,6 +156,7 @@ else:
     mesh_mapper.SetScalarModeToUseCellFieldData()
 mesh_mapper.SetScalarVisibility(True)
 mesh_mapper.SetUseLookupTableScalarRange(False)
+
 
 # -----------------------------------------------------------------------------
 # Slices (3 cutters: Z, X, Y)
@@ -195,7 +221,9 @@ contour_actor.SetMapper(contour_mapper)
 renderer.AddActor(contour_actor)
 
 contour_value = 0.5 * (default_max + default_min)
-contour.SetInputArrayToProcess(0, 0, 0, default_array.get("type"), default_array.get("text"))
+contour.SetInputArrayToProcess(
+    0, 0, 0, default_array.get("type"), default_array.get("text")
+)
 contour.SetValue(0, contour_value)
 
 contour_actor.GetProperty().SetRepresentationToSurface()
@@ -242,12 +270,22 @@ renderer.AddActor(axes)
 renderer.SetBackground(0.2, 0.4, 0.6)
 renderer.ResetCamera()
 
+camera = renderer.GetActiveCamera()
+camera.SetFocalPoint(cx, cy, cz)
+
+# Pick an initial position relative to model size
+# (keeps UTM coords, just sets where the camera sits)
+camera.SetPosition(cx, cy - 2.5 * R, cz + 1.2 * R)
+camera.SetViewUp(0, 0, 1)
+
+renderer.ResetCameraClippingRange()
 # -----------------------------------------------------------------------------
 # GUI and Trame setup
 # -----------------------------------------------------------------------------
 server = get_server(client_type="vue2")
 state, ctrl = server.state, server.controller
 state.setdefault("active_ui", None)
+
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -525,7 +563,9 @@ def ui_card(title, ui_name):
     return content
 
 
-def common_representation_select(v_model_name, default_value=Representation.SurfaceWithEdges):
+def common_representation_select(
+    v_model_name, default_value=Representation.SurfaceWithEdges
+):
     vuetify.VSelect(
         v_model=(v_model_name, default_value),
         items=(
@@ -631,8 +671,19 @@ def contour_card():
         )
 
 
-def slice_card(title, ui_name, slice_axis, slider_model, slider_min, slider_max, rep_model, op_model,
-               min_btn_click, mid_btn_click, max_btn_click):
+def slice_card(
+    title,
+    ui_name,
+    slice_axis,
+    slider_model,
+    slider_min,
+    slider_max,
+    rep_model,
+    op_model,
+    min_btn_click,
+    mid_btn_click,
+    max_btn_click,
+):
     with ui_card(title=title, ui_name=ui_name):
         common_representation_select(rep_model, Representation.SurfaceWithEdges)
 
