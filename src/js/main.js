@@ -341,6 +341,92 @@ const sAEMLayer = L.geoJSON(sAEM_patches, {
     }
 })
 
+// Load CSEM data
+const csemIpRxLayer = L.geoJSON(CSEM_3D_IP_RX, {
+    pointToLayer: function (_feature, latlng) {
+        return L.marker(latlng, {
+            icon: L.divIcon({
+                className: '',
+                html: '<div style="color:#e67e22; font-size:16px; line-height:1; text-shadow:0 0 2px rgba(0,0,0,0.6); margin:-8px 0 0 -5px;">★</div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            })
+        });
+    },
+    onEachFeature: function (feature, layer) {
+        const p = feature.properties;
+        layer.bindPopup(`
+            <b>Name:</b> ${p.name || '-'}<br>
+            <b>Easting:</b> ${p.easting || '-'}<br>
+            <b>Northing:</b> ${p.northing || '-'}<br>
+            <b>Elevation:</b> ${p.elev || '-'}<br>
+            ${p.comments ? `<b>Comments:</b> ${p.comments}<br>` : ''}
+        `);
+    }
+});
+
+const csemIpTxLayer = L.geoJSON(CSEM_3D_IP_TXelectrodes, {
+    pointToLayer: function (_feature, latlng) {
+        return L.marker(latlng, {
+            icon: L.divIcon({
+                className: '',
+                html: '<div style="color:#8e44ad; font-size:16px; line-height:1; text-shadow:0 0 2px rgba(0,0,0,0.6); margin:-8px 0 0 -5px;">★</div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            })
+        });
+    },
+    onEachFeature: function (feature, layer) {
+        const p = feature.properties;
+        layer.bindPopup(`
+            <b>Name:</b> ${p.name || '-'}<br>
+            <b>Easting:</b> ${p.easting || '-'}<br>
+            <b>Northing:</b> ${p.northing || '-'}<br>
+            <b>Elevation:</b> ${p.elev || '-'}<br>
+            ${p.comments ? `<b>Comments:</b> ${p.comments}<br>` : ''}
+        `);
+    }
+});
+
+const extremRxLayer = L.geoJSON(ExtrEM_CSEM_Rx, {
+    pointToLayer: function (_feature, latlng) {
+        return L.marker(latlng, {
+            icon: L.divIcon({
+                className: '',
+                html: '<div style="color:#e91e63; font-size:16px; line-height:1; text-shadow:0 0 2px rgba(0,0,0,0.6); margin:-8px 0 0 -5px;">★</div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            })
+        });
+    },
+    onEachFeature: function (feature, layer) {
+        const p = feature.properties;
+        layer.bindPopup(`
+            <b>Name:</b> ${p.Name || '-'}<br>
+            <b>ID:</b> ${p.id || '-'}<br>
+            <b>Distance:</b> ${p.distance || '-'}<br>
+            <b>Angle:</b> ${p.angle || '-'}<br>
+        `);
+    }
+});
+
+const extremTxLayer = L.geoJSON(ExtrEM_CSEM_TxLines, {
+    style: {
+        color: '#c0392b',
+        weight: 3,
+        opacity: 0.9
+    },
+    onEachFeature: function (feature, layer) {
+        const p = feature.properties;
+        layer.bindPopup(`
+            <b>Name:</b> ${p.Name || '-'}<br>
+            <b>ID:</b> ${p.id || '-'}<br>
+            <b>Length:</b> ${p.length || '-'}<br>
+            <b>Gates:</b> ${p.Gates || '-'}<br>
+        `);
+    }
+});
+
 // Load seismice data
 var seismicUCLayer = createSeismicLayer(seismic_UC, {
     color: '#222',
@@ -394,6 +480,32 @@ var groupedOverlays = [
 
             // { name: "MT B (Blue)", layer: mtLayerB },
             // { name: "MT C (Green)", layer: mtLayerC }
+        ]
+    },
+    {
+        group: "CSEM",
+        collapsed: true,
+        layers: [
+            {
+                name: "<span style='color:#e67e22; font-size:14px; margin-right:5px;'>★</span> 3D IP Receivers",
+                layer: csemIpRxLayer,
+                active: true,
+            },
+            {
+                name: "<span style='color:#8e44ad; font-size:14px; margin-right:5px;'>★</span> 3D IP TX Electrodes",
+                layer: csemIpTxLayer,
+                active: true,
+            },
+            {
+                name: "<span style='color:#e91e63; font-size:14px; margin-right:5px;'>★</span> ExtrEM Receivers",
+                layer: extremRxLayer,
+                active: true,
+            },
+            {
+                name: "<svg width='18' height='10' style='vertical-align:middle; margin-right:5px;'><line x1='0' y1='5' x2='18' y2='5' stroke='#c0392b' stroke-width='3'/></svg> ExtrEM TX Lines",
+                layer: extremTxLayer,
+                active: true,
+            },
         ]
     },
     {
