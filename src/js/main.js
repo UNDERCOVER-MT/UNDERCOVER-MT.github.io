@@ -1,4 +1,10 @@
 $(document).ready(function () {
+    // Load metadata from CSV
+    loadMetadata('./data/Metadata.csv');
+
+    // Initialize metadata event listeners
+    initMetadataListeners();
+
     // $('#myModal').modal('show')
     // $('#mailbutton').click(function (event) {
     //     window.location = "mailto:h.marzouk@uni-muenster.de";
@@ -447,20 +453,20 @@ var groupedOverlays = [
         collapsed: false,
         layers: [
             {
-                name: "<span class='legend-dot dot-batCircle'></span> BatCircle", layer: mtLayer_BatCircle,
+                name: "<span class='legend-dot dot-batCircle'></span> BatCircle<i class='fa fa-info-circle metadata-info-icon' data-layer='MT_BatCircle' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
+                layer: mtLayer_BatCircle,
                 active: true,
             },
             {
-                name: "<span class='legend-dot dot-2024'></span> 2025", layer: mtLayer_2024,
+                name: "<span class='legend-dot dot-2024'></span> 2025<i class='fa fa-info-circle metadata-info-icon' data-layer='MT_2024' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
+                layer: mtLayer_2024,
                 active: true,
             },
             {
-                name: "<span class='legend-dot dot-planned-2026'></span> planend 2026", layer: mtLayer_2026,
+                name: "<span class='legend-dot dot-planned-2026'></span> planend 2026<i class='fa fa-info-circle metadata-info-icon' data-layer='MT_2026' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
+                layer: mtLayer_2026,
                 active: true,
             },
-
-            // { name: "MT B (Blue)", layer: mtLayerB },
-            // { name: "MT C (Green)", layer: mtLayerC }
         ]
     },
     {
@@ -468,18 +474,15 @@ var groupedOverlays = [
         collapsed: true,
         layers: [
             {
-                name: "<span class='legend-rect rect-afmag'></span> AFMAG",
+                name: "<span class='legend-rect rect-afmag'></span> AFMAG<i class='fa fa-info-circle metadata-info-icon' data-layer='AFMAG' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: afmagLayer,
                 active: true,
             },
             {
-                name: "<span class='legend-rect rect-sAEM'></span> sAEM",
+                name: "<span class='legend-rect rect-sAEM'></span> sAEM<i class='fa fa-info-circle metadata-info-icon' data-layer='sAEM' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: sAEMLayer,
                 active: true,
             },
-
-            // { name: "MT B (Blue)", layer: mtLayerB },
-            // { name: "MT C (Green)", layer: mtLayerC }
         ]
     },
     {
@@ -487,22 +490,22 @@ var groupedOverlays = [
         collapsed: true,
         layers: [
             {
-                name: "<span style='color:#e67e22; font-size:14px; margin-right:5px;'>★</span> 3D IP Receivers",
+                name: "<span style='color:#e67e22; font-size:14px; margin-right:5px;'>★</span> 3D IP Receivers<i class='fa fa-info-circle metadata-info-icon' data-layer='3D IP Receivers' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: csemIpRxLayer,
                 active: true,
             },
             {
-                name: "<span style='color:#8e44ad; font-size:14px; margin-right:5px;'>★</span> 3D IP TX Electrodes",
+                name: "<span style='color:#8e44ad; font-size:14px; margin-right:5px;'>★</span> 3D IP TX Electrodes<i class='fa fa-info-circle metadata-info-icon' data-layer='3D IP TX Electrodes' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: csemIpTxLayer,
                 active: true,
             },
             {
-                name: "<span style='color:#e91e63; font-size:14px; margin-right:5px;'>★</span> ExtrEM Receivers",
+                name: "<span style='color:#e91e63; font-size:14px; margin-right:5px;'>★</span> ExtrEM Receivers<i class='fa fa-info-circle metadata-info-icon' data-layer='ExtrEM Receivers' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: extremRxLayer,
                 active: true,
             },
             {
-                name: "<svg width='18' height='10' style='vertical-align:middle; margin-right:5px;'><line x1='0' y1='5' x2='18' y2='5' stroke='#c0392b' stroke-width='3'/></svg> ExtrEM TX Lines",
+                name: "<svg width='18' height='10' style='vertical-align:middle; margin-right:5px;'><line x1='0' y1='5' x2='18' y2='5' stroke='#c0392b' stroke-width='3'/></svg> ExtrEM TX Lines<i class='fa fa-info-circle metadata-info-icon' data-layer='ExtrEM TX Lines' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: extremTxLayer,
                 active: true,
             },
@@ -513,11 +516,13 @@ var groupedOverlays = [
         collapsed: true,
         layers: [
             {
-                name: "<span class='legend-tri tri-seis'></span> UC", layer: seismicUCLayer,
+                name: "<span class='legend-tri tri-seis'></span> UC<i class='fa fa-info-circle metadata-info-icon' data-layer='UC' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
+                layer: seismicUCLayer,
                 active: false,
             },
             {
-                name: "<span class='legend-tri tri-seis'></span> Broadband", layer: seismicBbLayer,
+                name: "<span class='legend-tri tri-seis'></span> Broadband<i class='fa fa-info-circle metadata-info-icon' data-layer='Broadband' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
+                layer: seismicBbLayer,
                 active: false,
             },
         ]

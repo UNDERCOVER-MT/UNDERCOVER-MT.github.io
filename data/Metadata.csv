@@ -1,0 +1,8 @@
+﻿Data Type,#Stations/receivers,#Sources/transmitters,Station/line spacing,Footprint,Expected Depth penetration,Location/Acquisition time,Status,Notes,Contact Person,Email
+MT,"230 new, ~200 pre-existing",N/A,??,~180x150 km,Crust + uppermost mantle,"Kuusamo region, June/July 2025","First part of acquisition completed, first model exists",Second acquisition trip planned summer 2026,"G. Hill, E. Roots, U. Autio",gjhill@ig.cas.cz
+Regional passive seismic,35,N/A,25-30 km,~180x150 km (co-located with MT),Entire Crust,"Kuusamo region, May-Nov 2025","Acquisition completed, processing yet to start",,"C. Sippl, E. Rodriguez",sippl@ig.cas.cz
+Large-N passive seismic,~500,N/A,1-1.2 km,~25x30 km,Uppermost few km,"Kitka region, June-August 2025","Acquisition complete, processing started",,"C. Sippl, E. Rodriguez",sippl@ig.cas.cz
+AFMAG,N/A,N/A,1 km line spacing,1600 km^2,Uppermost 2 km,Kitka region (co-located with large-N passive seismic); Aug/Sep 2025,"Acquisition done, processing runs",,"A Thiede, M. Schiffler",athiede@uni-muenster.de
+Semi-airborne EM,N/A,6 grounded electric dipoles,250 m line spacing,16.5 km^2,1-2 km,Juomasuo area; Aug/Sep 2025,"Acquisition, processing done, inversion ongoing ",,"A Thiede, M. Schiffler",athiede@uni-muenster.de
+CSEM profile (ExtrEM),30,3,~2-2.5 km?,~72 km long profile,~10 km,~N-S across Kitka area,"Measurements done, processing started",,"F. Bretaudeau, C. Patzer",F.Bretaudeau@brgm.fr
+3D CSEM/IP,100,~30,?,~3x3 km,??,Juomasuo area (co-located with semi-airborne),"Measurements done, processing started",,"F. Bretaudeau, C. Patzer",F.Bretaudeau@brgm.fr
