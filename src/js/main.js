@@ -492,12 +492,12 @@ var groupedOverlays = [
             {
                 name: "<span style='color:#e67e22; font-size:14px; margin-right:5px;'>★</span> 3D IP Receivers<i class='fa fa-info-circle metadata-info-icon' data-layer='3D IP Receivers' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: csemIpRxLayer,
-                active: true,
+                active: false,
             },
             {
                 name: "<span style='color:#8e44ad; font-size:14px; margin-right:5px;'>★</span> 3D IP TX Electrodes<i class='fa fa-info-circle metadata-info-icon' data-layer='3D IP TX Electrodes' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: csemIpTxLayer,
-                active: true,
+                active: false,
             },
             {
                 name: "<span style='color:#e91e63; font-size:14px; margin-right:5px;'>★</span> ExtrEM Receivers<i class='fa fa-info-circle metadata-info-icon' data-layer='ExtrEM Receivers' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
