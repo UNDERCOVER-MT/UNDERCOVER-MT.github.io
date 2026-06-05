@@ -161,12 +161,46 @@ function showMetadataModal(layerName) {
 
     // Show modal
     const modal = document.getElementById('metadataModal');
-    if (modal) {
-        const bootstrapModal = new bootstrap.Modal(modal);
+    if (!modal) {
+        createMetadataModal();
+    }
+
+    const finalModal = document.getElementById('metadataModal');
+    if (finalModal) {
+        const bootstrapModal = new bootstrap.Modal(finalModal);
         bootstrapModal.show();
     } else {
         console.error('Metadata modal not found');
     }
+}
+
+/**
+ * Create metadata modal if it does not exist in the DOM
+ */
+function createMetadataModal() {
+    if (document.getElementById('metadataModal')) {
+        return;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = `
+        <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="metadataModalTitle">Metadata</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="metadataModalBody"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(wrapper.firstElementChild);
 }
 
 /**

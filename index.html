@@ -228,8 +228,7 @@
                 style="height: 100%; background-color: #f8f9fa;">
                 <div class="container-fluid p-0" style="height: 100%;">
                     <iframe id="trame3d" title="3D Models" style="width: 100%; height: calc(100vh - 120px); border: 0;"
-                        loading="lazy" data-http-src="http://37.120.97.18:8080"
-                        data-https-src="https://37.120.97.18:8080"
+                        loading="lazy" src="https://trame.hossam.synology.me/"
                         allow="clipboard-read; clipboard-write"></iframe>
 
                     <!-- http://localhost:8080 -->
@@ -289,16 +288,7 @@
 
     <!-- Scripts -->
             <script src="./src/js/main.js"></script>
-            <script>
-                (function () {
-                    const trameFrame = document.getElementById("trame3d");
-                    if (!trameFrame) return;
 
-                    trameFrame.src = window.location.protocol === "https:"
-                        ? trameFrame.dataset.httpsSrc
-                        : trameFrame.dataset.httpSrc;
-                })();
-            </script>
 
             <!-- Modal -->
             <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle"

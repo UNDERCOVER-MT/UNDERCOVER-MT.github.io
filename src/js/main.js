@@ -1,6 +1,6 @@
 $(document).ready(function () {
     // Load metadata from CSV
-    loadMetadata('./data/Metadata.csv');
+    loadMetadata('data/Metadata.csv');
 
     // Initialize metadata event listeners
     initMetadataListeners();
