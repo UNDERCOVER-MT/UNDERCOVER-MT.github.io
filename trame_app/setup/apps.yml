@@ -1,0 +1,15 @@
+trame:
+  cmd:
+    - uv
+    - run
+    - --with-requirements
+    - /deploy/setup/requirements.txt
+    - python
+    - /local-app/app.py
+    - --host
+    - ${host}
+    - --port
+    - ${port}
+    - --authKey
+    - ${secret}
+    - --server

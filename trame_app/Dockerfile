@@ -1,22 +1,27 @@
-FROM python:3.11-slim
+FROM kitware/trame:uv
 
-WORKDIR /app
+ENV TRAME_PYTHON=3.12
+ENV TRAME_CLIENT_TYPE=vue2
 
-RUN apt-get update && apt-get install -y \
-    libx11-6 \
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libegl1 \
     libgl1 \
+    libgl1-mesa-dri \
+    libglx-mesa0 \
     libglib2.0-0 \
-    libxrender1 \
-    libxext6 \
-    libsm6 \
     libice6 \
+    libopengl0 \
+    libsm6 \
+    libx11-6 \
+    libxext6 \
+    libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --chown=trame-user:trame-user . /local-app
+COPY --chown=trame-user:trame-user ./setup /deploy/setup
 
-COPY . .
-
-EXPOSE 8080
-
-CMD ["python", "app.py", "--host", "0.0.0.0", "--port", "8080"]
+RUN uv pip install --system -r /deploy/setup/requirements.txt
+RUN ldconfig -p | grep libGL.so.1
+RUN /opt/trame/entrypoint.sh build

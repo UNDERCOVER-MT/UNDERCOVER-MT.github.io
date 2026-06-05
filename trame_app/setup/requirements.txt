@@ -1,3 +1,5 @@
+--extra-index-url https://wheels.vtk.org
+
 trame==2.5.2
 trame_client==3.11.2
 trame_components==2.5.0
@@ -9,5 +11,6 @@ trame_plotly==2.1.1
 trame_rca==2.2.2
 trame_router==2.3.0
 trame_vega==2.1.1
+trame_vtk
 trame_vuetify==2.9.0
-vtk==9.5.2
+vtk-egl
