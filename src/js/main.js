@@ -17,12 +17,17 @@ var map = L.map('map', {
     minZoom: 7,      // (optional) prevents zooming in beyond level 19
     center: L.latLng([66, 28.2]),
     attributionControl: true,
+    popupMovable: true,
+    closePopupOnClick: false,
     fullscreenControl: true,
     fullscreenControlOptions: {
         position: 'topleft',
     },
 });
 L.control.locate().addTo(map);
+
+L.Popup.prototype.options.autoClose = false;
+L.Popup.prototype.options.closeOnClick = false;
 
 map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet ' + L.version + '</a>');
 
@@ -152,7 +157,7 @@ map.on('popupopen', function (e) {
     // Handle impedance curve image for all MT sites
     const impedanceContainer = e.popup._contentNode.querySelector('.impedance-container');
     if (impedanceContainer) {
-        e.popup._contentNode.style.width = '300px';
+        e.popup._contentNode.style.width = '250px';
         const siteName = impedanceContainer.dataset.site;
         const img = impedanceContainer.querySelector('.impedance-img');
         const msg = impedanceContainer.querySelector('.impedance-msg');

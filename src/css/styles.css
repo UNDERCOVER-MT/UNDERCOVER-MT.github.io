@@ -177,3 +177,30 @@ body,
 .tri-seis {
   border-top: 12px solid #222;
 }
+
+.leaflet-popup-movable {
+  cursor: move;
+}
+
+.leaflet-popup-movable .leaflet-popup-content-wrapper,
+.leaflet-popup-movable .leaflet-popup-tip {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.leaflet-popup-movable-lead {
+  position: absolute;
+  inset: 0;
+  z-index: 699;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.leaflet-popup-movable-line {
+  stroke: #222;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
