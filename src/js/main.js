@@ -148,6 +148,40 @@ map.on('popupopen', function (e) {
             });
         });
     }
+
+    // Handle impedance curve image for all MT sites
+    const impedanceContainer = e.popup._contentNode.querySelector('.impedance-container');
+    if (impedanceContainer) {
+        e.popup._contentNode.style.width = '300px';
+        const siteName = impedanceContainer.dataset.site;
+        const img = impedanceContainer.querySelector('.impedance-img');
+        const msg = impedanceContainer.querySelector('.impedance-msg');
+        const imagePath = `data/TFS/${siteName}.png`;
+
+        // Create image to check if it exists
+        const testImg = new Image();
+        testImg.onload = function () {
+            // Image exists - show it with magnifying glass button
+            img.src = imagePath;
+            img.style.display = 'block';
+            msg.innerHTML = `<button class="btn btn-sm btn-info open-impedance-modal" data-site="${siteName}" style="margin-top: 8px; cursor: pointer;">🔍 Zoom in</button>`;
+
+            // Add click handler for magnifying glass button
+            msg.querySelector('.open-impedance-modal').addEventListener('click', function (e) {
+                e.preventDefault();
+                const site = this.dataset.site;
+                $('#impedanceModalTitle').text(`Impedance Curve - ${site}`);
+                $('#impedanceImage').attr('src', `data/TFS/${site}.png`);
+                $('#impedanceModal').modal('show');
+            });
+        };
+        testImg.onerror = function () {
+            // Image not found - show message
+            img.style.display = 'none';
+            msg.innerHTML = `<span style="color: #dc3545;">No impedance found</span>`;
+        };
+        testImg.src = imagePath;
+    }
 });
 
 
@@ -449,6 +483,22 @@ var baseLayers = []; // (optional)
 
 var groupedOverlays = [
     {
+        group: "Airborne EM",
+        collapsed: true,
+        layers: [
+            {
+                name: "<span class='legend-rect rect-afmag'></span> AFMAG<i class='fa fa-info-circle metadata-info-icon' data-layer='AFMAG' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
+                layer: afmagLayer,
+                active: true,
+            },
+            {
+                name: "<span class='legend-rect rect-sAEM'></span> sAEM<i class='fa fa-info-circle metadata-info-icon' data-layer='sAEM' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
+                layer: sAEMLayer,
+                active: true,
+            },
+        ]
+    },
+    {
         group: "Magnetotelluric",
         collapsed: false,
         layers: [
@@ -465,22 +515,6 @@ var groupedOverlays = [
             {
                 name: "<span class='legend-dot dot-planned-2026'></span> planend 2026<i class='fa fa-info-circle metadata-info-icon' data-layer='MT_2026' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: mtLayer_2026,
-                active: true,
-            },
-        ]
-    },
-    {
-        group: "Airborne EM",
-        collapsed: true,
-        layers: [
-            {
-                name: "<span class='legend-rect rect-afmag'></span> AFMAG<i class='fa fa-info-circle metadata-info-icon' data-layer='AFMAG' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
-                layer: afmagLayer,
-                active: true,
-            },
-            {
-                name: "<span class='legend-rect rect-sAEM'></span> sAEM<i class='fa fa-info-circle metadata-info-icon' data-layer='sAEM' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
-                layer: sAEMLayer,
                 active: true,
             },
         ]
@@ -596,13 +630,21 @@ function createMTLayer(data, color, layerName) {
                 popupContent += `<b>Name:</b> ${name}<br>`;
             }
             if (matchedNote) {
-
                 popupContent += `<b>Note:</b> ${matchedNote}<br>`;
             }
+
+            // Add impedance curve image for all MT sites if file exists
+            if (name) {
+                popupContent += `<div style="margin-top: 10px;" class="impedance-container" data-site="${name}">
+                    <img src="data/TFS/${name}.png" class="impedance-img" style="width: 100%; max-width: 5000px; border-radius: 4px; display: none;">
+                    <span class="impedance-msg" style="display: block; font-style: italic; color: #666;">Loading...</span>
+                </div>`;
+            }
+
             popupContent += `<hr style="margin: 4px 0; border-top: 3px solid #aaa;">`;  // clean divider
             popupContent += `<a href="#" class="navigate-link" data-lat="${layer.getLatLng().lat}" data-lng="${layer.getLatLng().lng}">📍 Navigate here</a>`;
 
-            layer.bindPopup(popupContent);
+            layer.bindPopup(popupContent, { maxWidth: 1200 });
 
             // ✅ Add label only to MT_C
             // if (layerName === 'MT_C' && name) {

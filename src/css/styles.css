@@ -127,6 +127,11 @@ body,
   border: 1px solid rgba(0, 0, 0, 0.25);
 }
 
+.impedance-img {
+  width: 100%;
+  display: block;
+}
+
 .dot-batCircle {
   background: #4daf4a;
 }

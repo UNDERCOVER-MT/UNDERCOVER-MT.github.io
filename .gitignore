@@ -4,3 +4,5 @@
 *.tar
 *.tar
 *.tar
+trame_app
+/trame_app/*

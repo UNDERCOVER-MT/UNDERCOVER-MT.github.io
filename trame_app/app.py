@@ -1,11 +1,18 @@
 # %%
+import math
 import os
 
 from trame.app import get_server
 from trame.ui.vuetify import SinglePageWithDrawerLayout
 from trame.widgets import vtk, vuetify, trame
 
-from vtkmodules.vtkCommonDataModel import vtkDataObject, vtkPlane
+from vtkmodules.vtkCommonCore import vtkDoubleArray, vtkPoints, vtkStringArray
+from vtkmodules.vtkCommonDataModel import (
+    vtkCellArray,
+    vtkDataObject,
+    vtkPlane,
+    vtkPolyData,
+)
 from vtkmodules.vtkFiltersCore import vtkContourFilter, vtkCutter
 from vtkmodules.vtkRenderingAnnotation import (
     vtkCubeAxesActor,
@@ -15,18 +22,14 @@ from vtkmodules.vtkRenderingAnnotation import (
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
     vtkDataSetMapper,
+    vtkLookupTable,
+    vtkPolyDataMapper,
     vtkRenderer,
     vtkRenderWindow,
-    vtkRenderWindowInteractor,
 )
 from vtkmodules.vtkIOLegacy import vtkRectilinearGridReader, vtkUnstructuredGridReader
+from trame_vtk.modules.vtk.serializers import configure_serializer
 
-# Required for interactor initialization
-from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
-
-# Required for rendering initialization, not necessary for local rendering,
-# but doesn't hurt to include it.
-import vtkmodules.vtkRenderingOpenGL2  # noqa
 
 from vtkmodules.vtkCommonColor import vtkNamedColors
 
@@ -47,9 +50,34 @@ class Representation:
 
 class LookupTable:
     Rainbow = 0
-    Inverted_Rainbow = 1
-    Greyscale = 2
-    Inverted_Greyscale = 3
+    InvertedRainbow = 1
+    SaturatedRainbow = 2
+    Turbo = 3
+    CoolToWarm = 4
+    Greyscale = 5
+
+
+# Turbo colormap (Google/Mikhail Potapov) — (t, R, G, B)
+_TURBO = [
+    (0.00, 0.18995, 0.07176, 0.23217),
+    (0.10, 0.25107, 0.25237, 0.63374),
+    (0.20, 0.14660, 0.40550, 0.89453),
+    (0.30, 0.02660, 0.57862, 0.83278),
+    (0.40, 0.13397, 0.71115, 0.61184),
+    (0.50, 0.46004, 0.78846, 0.35936),
+    (0.60, 0.77655, 0.80556, 0.12184),
+    (0.70, 0.96852, 0.70929, 0.14274),
+    (0.80, 0.98700, 0.50130, 0.01370),
+    (0.90, 0.90900, 0.26990, 0.01369),
+    (1.00, 0.50000, 0.01960, 0.01960),
+]
+
+# Cool-to-Warm diverging (ParaView default)
+_COOL_WARM = [
+    (0.0, 0.231, 0.298, 0.752),
+    (0.5, 0.865, 0.865, 0.865),
+    (1.0, 0.706, 0.016, 0.149),
+]
 
 
 # -----------------------------------------------------------------------------
@@ -59,19 +87,15 @@ renderer = vtkRenderer()
 renderWindow = vtkRenderWindow()
 renderWindow.AddRenderer(renderer)
 
-renderWindowInteractor = vtkRenderWindowInteractor()
-renderWindowInteractor.SetRenderWindow(renderWindow)
-renderWindowInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
-
 # -----------------------------------------------------------------------------
-# Read the data (ONLY one file: ./data/model.vtk) - RECTILINEAR_GRID legacy VTK
+# Read the data - UNSTRUCTURED_GRID legacy VTK
 # -----------------------------------------------------------------------------
-reader = vtkRectilinearGridReader()
-model_path = os.path.join(CURRENT_DIRECTORY, "result.vtk")
+reader = vtkUnstructuredGridReader()
+model_path = os.path.join(CURRENT_DIRECTORY, "model_MT.vtk")
 if not os.path.exists(model_path):
     raise FileNotFoundError(
         f"Could not find model VTK file at: {model_path}\n"
-        "Please put your file there and name it exactly: result.vtk"
+        "Please put your file there and name it exactly: model_MT.vtk"
     )
 
 reader.SetFileName(model_path)
@@ -125,7 +149,9 @@ if not dataset_arrays:
 
 default_array = dataset_arrays[0]
 default_min, default_max = default_array.get("range")
-
+print(
+    f"Default array for coloring: {default_array.get('text')} with range {default_min} to {default_max}"
+)
 # -----------------------------------------------------------------------------
 # Mesh
 # -----------------------------------------------------------------------------
@@ -139,22 +165,89 @@ mesh_actor.GetProperty().SetRepresentationToSurface()
 mesh_actor.GetProperty().SetPointSize(1)
 mesh_actor.GetProperty().EdgeVisibilityOn()
 
-# Mesh lookup table (default rainbow)
-mesh_lut = mesh_mapper.GetLookupTable()
-mesh_lut.SetHueRange(0.666, 0.0)
-mesh_lut.SetSaturationRange(1.0, 1.0)
-mesh_lut.SetValueRange(1, 1.0)
-mesh_lut.Build()
+# Default color range and log scale
+_lut_min = 1.0
+_lut_max = 10000.0
+
+
+def _interp_rgb(control_points, t):
+    if t <= control_points[0][0]:
+        return control_points[0][1:]
+    if t >= control_points[-1][0]:
+        return control_points[-1][1:]
+    for i in range(len(control_points) - 1):
+        t0, r0, g0, b0 = control_points[i]
+        t1, r1, g1, b1 = control_points[i + 1]
+        if t0 <= t <= t1:
+            f = (t - t0) / (t1 - t0)
+            return r0 + f * (r1 - r0), g0 + f * (g1 - g0), b0 + f * (b1 - b0)
+    return control_points[-1][1:]
+
+
+def _make_lut(preset=LookupTable.Rainbow, vmin=None, vmax=None, log_scale=False):
+    _v_min = max(vmin if vmin is not None else _lut_min, 1e-300)
+    _v_max = vmax if vmax is not None else _lut_max
+
+    _N = 256
+    lut = vtkLookupTable()
+    lut.SetNumberOfTableValues(_N)
+    lut.SetTableRange(_v_min, _v_max)
+
+    if log_scale and _v_min > 0:
+        lut.SetScaleToLog10()
+    else:
+        lut.SetScaleToLinear()
+
+    if preset == LookupTable.Rainbow:
+        lut.SetHueRange(0.667, 0.0)
+        lut.SetSaturationRange(1.0, 1.0)
+        lut.SetValueRange(1.0, 1.0)
+        lut.Build()
+
+    elif preset == LookupTable.InvertedRainbow:
+        lut.SetHueRange(0.0, 0.667)
+        lut.SetSaturationRange(1.0, 1.0)
+        lut.SetValueRange(1.0, 1.0)
+        lut.Build()
+
+    elif preset == LookupTable.SaturatedRainbow:
+        lut.SetHueRange(0.8, 0.0)
+        lut.SetSaturationRange(1.0, 1.0)
+        lut.SetValueRange(1.0, 1.0)
+        lut.Build()
+
+    elif preset == LookupTable.Turbo:
+        lut.Build()
+        for i in range(_N):
+            r, g, b = _interp_rgb(_TURBO, i / (_N - 1))
+            lut.SetTableValue(i, r, g, b, 1.0)
+
+    elif preset == LookupTable.CoolToWarm:
+        lut.Build()
+        for i in range(_N):
+            r, g, b = _interp_rgb(_COOL_WARM, i / (_N - 1))
+            lut.SetTableValue(i, r, g, b, 1.0)
+
+    elif preset == LookupTable.Greyscale:
+        lut.SetHueRange(0.0, 0.0)
+        lut.SetSaturationRange(0.0, 0.0)
+        lut.SetValueRange(0.0, 1.0)
+        lut.Build()
+
+    return lut
+
+
+mesh_lut = _make_lut(log_scale=True)
+mesh_mapper.SetLookupTable(mesh_lut)
 
 # Mesh: color by default array
 mesh_mapper.SelectColorArray(default_array.get("text"))
-mesh_mapper.GetLookupTable().SetRange(default_min, default_max)
 if default_array.get("type") == vtkDataObject.FIELD_ASSOCIATION_POINTS:
     mesh_mapper.SetScalarModeToUsePointFieldData()
 else:
     mesh_mapper.SetScalarModeToUseCellFieldData()
 mesh_mapper.SetScalarVisibility(True)
-mesh_mapper.SetUseLookupTableScalarRange(False)
+mesh_mapper.SetUseLookupTableScalarRange(True)
 
 
 # -----------------------------------------------------------------------------
@@ -178,15 +271,14 @@ def make_slice(normal, origin):
     actor.SetMapper(mapper)
     renderer.AddActor(actor)
 
-    # Color settings
+    # Color settings — range comes from the shared LUT
     mapper.SelectColorArray(default_array.get("text"))
     if default_array.get("type") == vtkDataObject.FIELD_ASSOCIATION_POINTS:
         mapper.SetScalarModeToUsePointFieldData()
     else:
         mapper.SetScalarModeToUseCellFieldData()
     mapper.SetScalarVisibility(True)
-    mapper.SetUseLookupTableScalarRange(False)
-    mapper.GetLookupTable().SetRange(default_min, default_max)
+    mapper.SetUseLookupTableScalarRange(True)
 
     actor.GetProperty().SetRepresentationToSurface()
     actor.GetProperty().EdgeVisibilityOff()
@@ -229,7 +321,6 @@ contour_actor.GetProperty().SetRepresentationToSurface()
 contour_actor.GetProperty().EdgeVisibilityOff()
 
 contour_mapper.SelectColorArray(default_array.get("text"))
-contour_mapper.GetLookupTable().SetRange(default_min, default_max)
 if default_array.get("type") == vtkDataObject.FIELD_ASSOCIATION_POINTS:
     contour_mapper.SetScalarModeToUsePointFieldData()
 else:
@@ -251,7 +342,7 @@ cube_axes.SetZLabelFormat("%6.1f")
 cube_axes.SetFlyModeToOuterEdges()
 
 scalar_bar = vtkScalarBarActor()
-scalar_bar.SetLookupTable(mesh_mapper.GetLookupTable())
+scalar_bar.SetLookupTable(mesh_lut)
 scalar_bar.SetTitle(default_array.get("text"))
 scalar_bar.UnconstrainedFontSizeOff()
 scalar_bar.SetNumberOfLabels(8)
@@ -260,11 +351,82 @@ scalar_bar.SetBarRatio(scalar_bar.GetBarRatio() * 0.5)
 scalar_bar.SetPosition(0.87, 0.1)
 renderer.AddActor(scalar_bar)
 
+
+def _update_scalar_bar_labels(log_scale, vmin, vmax):
+    if log_scale and vmin > 0 and vmax > vmin:
+        scalar_bar.SetNumberOfLabels(0)
+        vals = vtkDoubleArray()
+        lbls = vtkStringArray()
+        lo = math.floor(math.log10(vmin))
+        hi = math.ceil(math.log10(vmax))
+        for exp in range(int(lo), int(hi) + 1):
+            for mult in (1, 2, 5):
+                v = mult * (10.0 ** exp)
+                if vmin <= v <= vmax:
+                    fmt = f"{v:.2e}" if (v >= 10000 or v < 0.01) else f"{v:g}"
+                    vals.InsertNextValue(v)
+                    lbls.InsertNextValue(fmt)
+        if vals.GetNumberOfTuples() == 0:
+            vals.InsertNextValue(vmin)
+            lbls.InsertNextValue(f"{vmin:.3g}")
+            vals.InsertNextValue(vmax)
+            lbls.InsertNextValue(f"{vmax:.3g}")
+        try:
+            scalar_bar.SetAnnotations(vals, lbls)
+            scalar_bar.DrawAnnotationsOn()
+        except AttributeError:
+            scalar_bar.SetNumberOfLabels(8)
+    else:
+        try:
+            scalar_bar.DrawAnnotationsOff()
+        except AttributeError:
+            pass
+        scalar_bar.SetNumberOfLabels(8)
+
+_update_scalar_bar_labels(True, _lut_min, _lut_max)
+
+# Orientation axes — SetPosition/SetScale are serialized by trame; SetUserTransform is not
+_axis_scale = R * 0.08
 axes = vtkAxesActor()
 axes.SetXAxisLabelText("X")
 axes.SetYAxisLabelText("Y")
 axes.SetZAxisLabelText("Z")
+# axes.SetPosition(xmin, ymin, zmin)
+axes.SetScale(_axis_scale, _axis_scale, _axis_scale)
 renderer.AddActor(axes)
+
+# -----------------------------------------------------------------------------
+# Sites (surface points from sites.csv rendered as coloured points)
+# -----------------------------------------------------------------------------
+sites_path = os.path.join(CURRENT_DIRECTORY, "sites.csv")
+sites_pts = vtkPoints()
+sites_verts = vtkCellArray()
+if os.path.exists(sites_path):
+    with open(sites_path) as _f:
+        _idx = 0
+        for _line in _f:
+            _parts = _line.strip().split()
+            if len(_parts) >= 2:
+                try:
+                    sites_pts.InsertNextPoint(float(_parts[0]), float(_parts[1]), zmin)
+                    sites_verts.InsertNextCell(1)
+                    sites_verts.InsertCellPoint(_idx)
+                    _idx += 1
+                except ValueError:
+                    pass
+
+sites_pd = vtkPolyData()
+sites_pd.SetPoints(sites_pts)
+sites_pd.SetVerts(sites_verts)
+
+sites_mapper = vtkPolyDataMapper()
+sites_mapper.SetInputData(sites_pd)
+sites_actor = vtkActor()
+sites_actor.SetMapper(sites_mapper)
+sites_actor.GetProperty().SetColor(colors.GetColor3d("Yellow"))
+sites_actor.GetProperty().SetPointSize(8)
+sites_actor.GetProperty().SetRepresentationToPoints()
+renderer.AddActor(sites_actor)
 
 renderer.SetBackground(0.2, 0.4, 0.6)
 renderer.ResetCamera()
@@ -272,15 +434,15 @@ renderer.ResetCamera()
 camera = renderer.GetActiveCamera()
 camera.SetFocalPoint(cx, cy, cz)
 
-# Pick an initial position relative to model size
-# (keeps UTM coords, just sets where the camera sits)
-camera.SetPosition(cx, cy - 2.5 * R, cz + 1.2 * R)
-camera.SetViewUp(0, 0, 1)
+# Z-down convention: surface (small z) at top, depth (large z) at bottom
+camera.SetPosition(cx, cy - 2.5 * R, cz - 1.2 * R)
+camera.SetViewUp(0, 0, -1)
 
 renderer.ResetCameraClippingRange()
 # -----------------------------------------------------------------------------
 # GUI and Trame setup
 # -----------------------------------------------------------------------------
+configure_serializer(encode_lut=True, skip_light=True)
 server = get_server(client_type="vue2")
 state, ctrl = server.state, server.controller
 state.setdefault("active_ui", None)
@@ -309,40 +471,37 @@ def update_representation(actor, mode):
         prop.EdgeVisibilityOn()
 
 
+def _apply_lut(lut):
+    for _m in (mesh_mapper, z_mapper, x_mapper, y_mapper, contour_mapper):
+        _m.SetLookupTable(lut)
+        _m.SetUseLookupTableScalarRange(True)
+    scalar_bar.SetLookupTable(lut)
+
+
 def color_by_array(actor, array):
-    _min, _max = array.get("range")
+    global _lut_min, _lut_max
+    _range = array.get("range")
+    _lut_min = _range[0] if _range[0] > 0 else 1e-6
+    _lut_max = _range[1]
+    _log = getattr(state, "log_scale", False)
+    _preset = getattr(state, "mesh_color_preset", LookupTable.Rainbow)
+    _apply_lut(_make_lut(preset=_preset, vmin=_lut_min, vmax=_lut_max, log_scale=_log))
     mapper = actor.GetMapper()
     mapper.SelectColorArray(array.get("text"))
-    mapper.GetLookupTable().SetRange(_min, _max)
     if array.get("type") == vtkDataObject.FIELD_ASSOCIATION_POINTS:
         mapper.SetScalarModeToUsePointFieldData()
     else:
         mapper.SetScalarModeToUseCellFieldData()
     mapper.SetScalarVisibility(True)
-    mapper.SetUseLookupTableScalarRange(False)
-    # Keep scalar bar title aligned with current mesh selection
     scalar_bar.SetTitle(array.get("text"))
+    state.colormap_min = _lut_min
+    state.colormap_max = _lut_max
+    _update_scalar_bar_labels(_log, _lut_min, _lut_max)
 
 
-def use_preset(actor, preset):
-    lut = actor.GetMapper().GetLookupTable()
-    if preset == LookupTable.Rainbow:
-        lut.SetHueRange(0.666, 0.0)
-        lut.SetSaturationRange(1.0, 1.0)
-        lut.SetValueRange(1.0, 1.0)
-    elif preset == LookupTable.Inverted_Rainbow:
-        lut.SetHueRange(0.0, 0.666)
-        lut.SetSaturationRange(1.0, 1.0)
-        lut.SetValueRange(1.0, 1.0)
-    elif preset == LookupTable.Greyscale:
-        lut.SetHueRange(0.0, 0.0)
-        lut.SetSaturationRange(0.0, 0.0)
-        lut.SetValueRange(0.0, 1.0)
-    elif preset == LookupTable.Inverted_Greyscale:
-        lut.SetHueRange(0.0, 0.666)
-        lut.SetSaturationRange(0.0, 0.0)
-        lut.SetValueRange(1.0, 0.0)
-    lut.Build()
+def use_preset(preset):
+    _log = getattr(state, "log_scale", False)
+    _apply_lut(_make_lut(preset=preset, vmin=_lut_min, vmax=_lut_max, log_scale=_log))
 
 
 # -----------------------------------------------------------------------------
@@ -356,15 +515,18 @@ def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
 
 def actives_change(ids):
     _id = ids[0]
+
     if _id == "1":
-        state.active_ui = "mesh"
+        state.active_ui = "sites"
     elif _id == "2":
-        state.active_ui = "contour"
+        state.active_ui = "mesh"
     elif _id == "3":
-        state.active_ui = "slice_z"
+        state.active_ui = "contour"
     elif _id == "4":
-        state.active_ui = "slice_x"
+        state.active_ui = "slice_z"
     elif _id == "5":
+        state.active_ui = "slice_x"
+    elif _id == "6":
         state.active_ui = "slice_y"
     else:
         state.active_ui = "nothing"
@@ -375,14 +537,16 @@ def visibility_change(event):
     _visibility = event["visible"]
 
     if _id == "1":
-        mesh_actor.SetVisibility(_visibility)
+        sites_actor.SetVisibility(_visibility)
     elif _id == "2":
-        contour_actor.SetVisibility(_visibility)
+        mesh_actor.SetVisibility(_visibility)
     elif _id == "3":
-        z_actor.SetVisibility(_visibility)
+        contour_actor.SetVisibility(_visibility)
     elif _id == "4":
-        x_actor.SetVisibility(_visibility)
+        z_actor.SetVisibility(_visibility)
     elif _id == "5":
+        x_actor.SetVisibility(_visibility)
+    elif _id == "6":
         y_actor.SetVisibility(_visibility)
     ctrl.view_update()
 
@@ -428,10 +592,39 @@ def _mesh_color(mesh_color_array_idx, **kwargs):
     ctrl.view_update()
 
 
-# Colormap preset (mesh lut is shared, so one change affects everything)
+# Colormap preset / log scale (mesh lut is shared, so one change affects everything)
 @state.change("mesh_color_preset")
 def _mesh_preset(mesh_color_preset, **kwargs):
-    use_preset(mesh_actor, mesh_color_preset)
+    use_preset(mesh_color_preset)
+    ctrl.view_update()
+
+
+@state.change("log_scale")
+def _log_scale(log_scale, **kwargs):
+    _preset = getattr(state, "mesh_color_preset", LookupTable.Rainbow)
+    _apply_lut(_make_lut(preset=_preset, vmin=_lut_min, vmax=_lut_max, log_scale=log_scale))
+    _update_scalar_bar_labels(log_scale, _lut_min, _lut_max)
+    ctrl.view_update()
+
+
+@state.change("colormap_min", "colormap_max")
+def _colormap_range(colormap_min, colormap_max, **kwargs):
+    global _lut_min, _lut_max
+    try:
+        vmin = float(colormap_min)
+        vmax = float(colormap_max)
+    except (ValueError, TypeError):
+        return
+    if vmin <= 0:
+        vmin = 1e-6
+    if vmax <= vmin:
+        return
+    _lut_min = vmin
+    _lut_max = vmax
+    _log = getattr(state, "log_scale", False)
+    _preset = getattr(state, "mesh_color_preset", LookupTable.Rainbow)
+    _apply_lut(_make_lut(preset=_preset, vmin=_lut_min, vmax=_lut_max, log_scale=_log))
+    _update_scalar_bar_labels(_log, _lut_min, _lut_max)
     ctrl.view_update()
 
 
@@ -482,6 +675,18 @@ def _x_pos(slice_x, **kwargs):
 @state.change("slice_y")
 def _y_pos(slice_y, **kwargs):
     y_plane.SetOrigin(0, float(slice_y), 0)
+    ctrl.view_update()
+
+
+@state.change("sites_point_size")
+def _sites_ps(sites_point_size, **kwargs):
+    sites_actor.GetProperty().SetPointSize(sites_point_size)
+    ctrl.view_update()
+
+
+@state.change("sites_opacity")
+def _sites_op(sites_opacity, **kwargs):
+    sites_actor.GetProperty().SetOpacity(sites_opacity)
     ctrl.view_update()
 
 
@@ -537,11 +742,12 @@ def pipeline_widget():
         sources=(
             "pipeline",
             [
-                {"id": "1", "parent": "0", "visible": 1, "name": "Mesh"},
-                {"id": "2", "parent": "1", "visible": 0, "name": "Contour"},
-                {"id": "3", "parent": "1", "visible": 1, "name": "Slice Z"},
-                {"id": "4", "parent": "1", "visible": 1, "name": "Slice X"},
-                {"id": "5", "parent": "1", "visible": 1, "name": "Slice Y"},
+                {"id": "1", "parent": "0", "visible": 1, "name": "Sites"},
+                {"id": "2", "parent": "0", "visible": 0, "name": "Mesh"},
+                {"id": "3", "parent": "2", "visible": 1, "name": "Contour"},
+                {"id": "4", "parent": "2", "visible": 1, "name": "Slice Z"},
+                {"id": "5", "parent": "2", "visible": 1, "name": "Slice X"},
+                {"id": "6", "parent": "2", "visible": 1, "name": "Slice Y"},
             ],
         ),
         actives_change=(actives_change, "[$event]"),
@@ -584,6 +790,32 @@ def common_representation_select(
     )
 
 
+def sites_card():
+    with ui_card(title="Sites", ui_name="sites"):
+        vuetify.VSlider(
+            v_model=("sites_point_size", 8),
+            min=1,
+            max=20,
+            step=1,
+            label="Point size",
+            classes="mt-1",
+            hide_details=True,
+            dense=True,
+            thumb_label=True,
+        )
+        vuetify.VSlider(
+            v_model=("sites_opacity", 1.0),
+            min=0,
+            max=1,
+            step=0.05,
+            label="Opacity",
+            classes="mt-1",
+            hide_details=True,
+            dense=True,
+            thumb_label=True,
+        )
+
+
 def mesh_card():
     with ui_card(title="Mesh", ui_name="mesh"):
         common_representation_select("mesh_representation", Representation.Surface)
@@ -606,12 +838,44 @@ def mesh_card():
                     items=(
                         "colormaps",
                         [
-                            {"text": "Rainbow", "value": 0},
-                            {"text": "Inv Rainbow", "value": 1},
-                            {"text": "Greyscale", "value": 2},
-                            {"text": "Inv Greyscale", "value": 3},
+                            {"text": "Rainbow",          "value": LookupTable.Rainbow},
+                            {"text": "Inv Rainbow",      "value": LookupTable.InvertedRainbow},
+                            {"text": "Sat Rainbow",      "value": LookupTable.SaturatedRainbow},
+                            {"text": "Turbo",            "value": LookupTable.Turbo},
+                            {"text": "Cool to Warm",     "value": LookupTable.CoolToWarm},
+                            {"text": "Greyscale",        "value": LookupTable.Greyscale},
                         ],
                     ),
+                    hide_details=True,
+                    dense=True,
+                    outlined=True,
+                    classes="pt-1",
+                )
+
+        vuetify.VCheckbox(
+            v_model=("log_scale", True),
+            label="Log scale",
+            dense=True,
+            hide_details=True,
+            classes="mt-1",
+        )
+
+        with vuetify.VRow(classes="pt-1", dense=True):
+            with vuetify.VCol(cols="6"):
+                vuetify.VTextField(
+                    v_model=("colormap_min", _lut_min),
+                    label="Color min",
+                    type="number",
+                    hide_details=True,
+                    dense=True,
+                    outlined=True,
+                    classes="pt-1",
+                )
+            with vuetify.VCol(cols="6"):
+                vuetify.VTextField(
+                    v_model=("colormap_max", _lut_max),
+                    label="Color max",
+                    type="number",
                     hide_details=True,
                     dense=True,
                     outlined=True,
@@ -777,6 +1041,7 @@ with SinglePageWithDrawerLayout(server) as layout:
             mid_btn_click=f"slice_y={(0.5*(ymin+ymax))}",
             max_btn_click=f"slice_y={ymax}",
         )
+        sites_card()
 
     with layout.content:
         with vuetify.VContainer(fluid=True, classes="pa-0 fill-height"):
