@@ -19,6 +19,14 @@ var map = L.map('map', {
     attributionControl: true,
     popupMovable: true,
     closePopupOnClick: false,
+    contextmenu: true,
+    contextmenuItems: [{
+        text: 'Close all popups',
+        callback: closeAllPopups
+    }, {
+        text: 'Copy coordinates (lat, long)',
+        callback: copyContextCoordinates
+    }],
     fullscreenControl: true,
     fullscreenControlOptions: {
         position: 'topleft',
@@ -30,6 +38,61 @@ L.Popup.prototype.options.autoClose = false;
 L.Popup.prototype.options.closeOnClick = false;
 
 map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet ' + L.version + '</a>');
+
+function closeAllPopups() {
+    const openPopups = [];
+
+    map.eachLayer(function (layer) {
+        if (layer instanceof L.Popup) {
+            openPopups.push(layer);
+            return;
+        }
+
+        const popup = layer.getPopup && layer.getPopup();
+        if (popup && popup.isOpen && popup.isOpen()) {
+            openPopups.push(popup);
+        }
+    });
+
+    openPopups.forEach(function (popup) {
+        map.closePopup(popup);
+    });
+}
+
+function copyContextCoordinates(event) {
+    if (!event.latlng) return;
+
+    const coordinates = `${event.latlng.lat.toFixed(6)}, ${event.latlng.lng.toFixed(6)}`;
+
+    copyTextToClipboard(coordinates).then(function () {
+        notification.success('Copied', coordinates);
+    }).catch(function () {
+        notification.alert('Error', 'Could not copy coordinates');
+    });
+}
+
+function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    }
+
+    const input = document.createElement('textarea');
+    input.value = text;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.select();
+
+    try {
+        document.execCommand('copy');
+        return Promise.resolve();
+    } catch (error) {
+        return Promise.reject(error);
+    } finally {
+        document.body.removeChild(input);
+    }
+}
 
 map.addControl(new L.Control.LinearMeasurement({
     unitSystem: 'metric',
@@ -645,9 +708,6 @@ function createMTLayer(data, color, layerName) {
                     <span class="impedance-msg" style="display: block; font-style: italic; color: #666;">Loading...</span>
                 </div>`;
             }
-
-            popupContent += `<hr style="margin: 4px 0; border-top: 3px solid #aaa;">`;  // clean divider
-            popupContent += `<a href="#" class="navigate-link" data-lat="${layer.getLatLng().lat}" data-lng="${layer.getLatLng().lng}">📍 Navigate here</a>`;
 
             layer.bindPopup(popupContent, { maxWidth: 1200 });
 
