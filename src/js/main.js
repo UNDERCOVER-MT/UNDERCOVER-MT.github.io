@@ -581,7 +581,7 @@ var groupedOverlays = [
                 active: true,
             },
             {
-                name: "<span class='legend-dot dot-2026'></span> planend 2026<i class='fa fa-info-circle metadata-info-icon' data-layer='MT_2026' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
+                name: "<span class='legend-dot dot-2026'></span>  2026<i class='fa fa-info-circle metadata-info-icon' data-layer='MT_2026' style='cursor: pointer; margin-left: 5px; color: #666; font-size: 14px;' title='Click for metadata'></i>",
                 layer: mtLayer_2026,
                 active: true,
             },
